@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getAnalysisAxes, addAnalysisAxis, updateAnalysisAxis, deleteAnalysisAxis } from '@/lib/json-database';
 
 export async function GET() {
   try {
+    const { getAnalysisAxes } = await import('@/lib/json-database');
     const axes = getAnalysisAxes();
     return NextResponse.json(axes);
   } catch (error) {
