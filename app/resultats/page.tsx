@@ -18,6 +18,7 @@ export default function ResultatsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -67,6 +68,7 @@ export default function ResultatsPage() {
         setTimeout(() => {
           setResults(sortedResults);
           setRefreshKey(prev => prev + 1); // Forcer le re-rendu
+          setLastUpdate(new Date()); // Mettre à jour le timestamp
           console.log('setResults appelé avec:', sortedResults);
         }, 10);
         
@@ -138,6 +140,7 @@ export default function ResultatsPage() {
   // Log pour débugger l'affichage
   console.log('Rendu de la page - results:', results);
   console.log('Total des réponses affiché:', results.reduce((total, result) => total + result.count, 0));
+  console.log('RefreshKey:', refreshKey);
 
   return (
     <div key={refreshKey} className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -152,9 +155,14 @@ export default function ResultatsPage() {
               {urlParams.get('profileId') ? 'Voici votre profil de culture d\'entreprise' : 'Voici les résultats consolidés de la session'}
             </p>
             {!urlParams.get('profileId') && (
-              <p className="text-lg text-gray-500 mt-2">
-                Basé sur {results.reduce((total, result) => total + result.count, 0)} réponses au total
-              </p>
+              <div className="mt-2">
+                <p className="text-lg text-gray-500">
+                  Basé sur <span className="font-bold text-anima-blue text-xl">{results.reduce((total, result) => total + result.count, 0)}</span> réponses au total
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Dernière mise à jour: {lastUpdate ? lastUpdate.toLocaleTimeString() : 'En cours...'}
+                </p>
+              </div>
             )}
           </div>
         </div>
