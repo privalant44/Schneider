@@ -60,7 +60,9 @@ export default function ResultatsPage() {
         console.log('URL utilisée:', url);
         console.log('Force recalculate:', forceRecalculate);
         const sortedResults = data.sort((a: any, b: any) => b.percentage - a.percentage);
+        console.log('Résultats triés avant setResults:', sortedResults);
         setResults(sortedResults);
+        console.log('setResults appelé avec:', sortedResults);
         
         // Récupérer les analyses par domaine seulement pour les sessions consolidées (sans profileId)
         if (!profileId) {
@@ -126,6 +128,10 @@ export default function ResultatsPage() {
   const dominantCulturesData = getDominantCultures();
   const { cultures: dominantCultures, isMultiple } = dominantCulturesData;
   const urlParams = new URLSearchParams(window.location.search);
+  
+  // Log pour débugger l'affichage
+  console.log('Rendu de la page - results:', results);
+  console.log('Total des réponses affiché:', results.reduce((total, result) => total + result.count, 0));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
