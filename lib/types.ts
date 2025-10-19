@@ -14,6 +14,7 @@ export interface Question {
   text_d: string;
   image_d: string;
   order_index: number;
+  domaine: string;
   created_at: string;
   updated_at: string;
 }
@@ -94,7 +95,30 @@ export interface RespondentProfile {
   session_id: string;
   // Réponses aux axes d'analyse (clé = axis_id, valeur = réponse)
   axis_responses: Record<string, string | string[]>;
+  // Propriétés démographiques
+  division?: string;
+  domain?: string;
+  age_range?: string;
+  gender?: string;
+  seniority?: string;
   created_at: string;
+}
+
+export interface DomainAnalysis {
+  id: string;
+  session_id: string;
+  domaine: string;
+  // Calculs radar
+  radar_x: number; // (A + B - C - D) / total
+  radar_y: number; // (A - B + C - D) / total
+  // Détails des réponses
+  count_a: number;
+  count_b: number;
+  count_c: number;
+  count_d: number;
+  total_responses: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface QuestionnaireSession {
@@ -107,6 +131,8 @@ export interface QuestionnaireSession {
   is_active: boolean;
   short_url?: string;
   planned_participants?: number;
+  // Axes d'analyse figés au moment de la création de la session
+  frozen_analysis_axes: AnalysisAxis[];
   created_at: string;
   updated_at: string;
 }

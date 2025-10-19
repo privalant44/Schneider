@@ -20,7 +20,8 @@ export async function POST(request: Request) {
       question_text, 
       text_a, text_b, text_c, text_d,
       image_a, image_b, image_c, image_d, 
-      order_index 
+      order_index,
+      domaine
     } = await request.json();
     
     const newQuestion = addQuestion({
@@ -33,7 +34,8 @@ export async function POST(request: Request) {
       image_b,
       image_c,
       image_d,
-      order_index
+      order_index,
+      domaine
     });
 
     return NextResponse.json({ id: newQuestion.id });
@@ -53,7 +55,8 @@ export async function PUT(request: Request) {
       question_text, 
       text_a, text_b, text_c, text_d,
       image_a, image_b, image_c, image_d, 
-      order_index 
+      order_index,
+      domaine
     } = await request.json();
     
     const updatedQuestion = updateQuestion(id, {
@@ -66,7 +69,8 @@ export async function PUT(request: Request) {
       image_b,
       image_c,
       image_d,
-      order_index
+      order_index,
+      domaine
     });
 
     if (updatedQuestion) {

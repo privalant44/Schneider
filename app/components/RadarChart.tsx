@@ -1,6 +1,6 @@
 'use client';
 
-import { CULTURE_TYPES } from '@/lib/types';
+import { CULTURE_TYPES, DomainAnalysis } from '@/lib/types';
 
 interface RadarResult {
   culture: 'A' | 'B' | 'C' | 'D';
@@ -10,12 +10,13 @@ interface RadarResult {
 
 interface RadarChartProps {
   results: RadarResult[];
+  domainAnalysis?: DomainAnalysis[];
 }
 
-export default function RadarChart({ results }: RadarChartProps) {
-  const size = 600; // Agrandi de 500 à 600
+export default function RadarChart({ results, domainAnalysis = [] }: RadarChartProps) {
+  const size = 1200; // Agrandi de 800 à 1200
   const center = size / 2;
-  const radius = 200; // Agrandi de 180 à 200
+  const radius = 420; // Agrandi de 280 à 420
   
   // Vérification de sécurité pour éviter les erreurs
   if (!results || !Array.isArray(results)) {
@@ -179,7 +180,7 @@ export default function RadarChart({ results }: RadarChartProps) {
 
   // Créer les labels des axes (positionnés aux extrémités)
   const axisLabels = mainAxes.map((axis, index) => {
-    const coords = polarToCartesian(axis.angle, radius + 60); // Plus éloigné
+    const coords = polarToCartesian(axis.angle, radius + 120); // Plus éloigné
     return {
       text: axis.label,
       x: coords.x,
@@ -215,6 +216,40 @@ export default function RadarChart({ results }: RadarChartProps) {
           </text>
         ))}
         
+        {/* Points par domaine (seulement si domainAnalysis est fourni) */}
+        {domainAnalysis && domainAnalysis.length > 0 && domainAnalysis.map((domain) => {
+          // Convertir les coordonnées radar (X, Y) en position sur le graphique
+          // X et Y sont normalisés entre -1 et 1, on les convertit en position sur le radar
+          const x = center + (domain.radar_x * radius * 0.8); // 0.8 pour laisser de la marge
+          const y = center - (domain.radar_y * radius * 0.8); // Inverser Y car SVG a Y vers le bas
+          
+          return (
+            <g key={domain.id}>
+              {/* Point du domaine */}
+              <circle
+                cx={x}
+                cy={y}
+                r="12"
+                fill="#8b5cf6"
+                stroke="#ffffff"
+                strokeWidth="4"
+                className="drop-shadow-sm"
+              />
+              
+              {/* Label du domaine */}
+              <text
+                x={x}
+                y={y - 30}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="text-base font-medium text-purple-700 fill-current"
+              >
+                {domain.domaine}
+              </text>
+            </g>
+          );
+        })}
+
         {/* Labels des cultures et pourcentages */}
         {quadrants.map((quadrant) => {
           const result = resultsMap[quadrant.culture];
@@ -250,10 +285,10 @@ export default function RadarChart({ results }: RadarChartProps) {
               {/* Nom de la culture */}
               <text
                 x={labelX}
-                y={labelY - 8}
+                y={labelY - 18}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-sm font-bold text-gray-800"
+                className="text-lg font-bold text-gray-800"
               >
                 {quadrant.name}
               </text>
@@ -261,10 +296,10 @@ export default function RadarChart({ results }: RadarChartProps) {
               {/* Pourcentage */}
               <text
                 x={labelX}
-                y={labelY + 12}
+                y={labelY + 24}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                className="text-xl font-bold text-gray-900"
+                className="text-3xl font-bold text-gray-900"
               >
                 {percentage}%
               </text>

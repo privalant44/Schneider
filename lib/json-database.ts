@@ -24,6 +24,7 @@ const CLIENT_ANALYSIS_AXES_FILE = path.join(DATA_DIR, 'client-analysis-axes.json
 const CLIENT_SPECIFIC_AXES_FILE = path.join(DATA_DIR, 'client-specific-axes.json');
 const QUESTIONS_FILE = path.join(DATA_DIR, 'questions.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
+const DOMAIN_ANALYSIS_FILE = path.join(DATA_DIR, 'domain-analysis.json');
 
 // Interface pour les questions (compatible avec l'ancien système)
 interface Question {
@@ -38,6 +39,23 @@ interface Question {
   image_c: string;
   image_d: string;
   order_index: number;
+  domaine: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface pour l'analyse par domaine
+interface DomainAnalysis {
+  id: string;
+  session_id: string;
+  domaine: string;
+  radar_x: number;
+  radar_y: number;
+  count_a: number;
+  count_b: number;
+  count_c: number;
+  count_d: number;
+  total_responses: number;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +76,7 @@ let clientAnalysisAxes: ClientAnalysisAxis[] = [];
 let clientSpecificAxes: ClientSpecificAxis[] = [];
 let questions: Question[] = [];
 let settings: Setting[] = [];
+let domainAnalysis: DomainAnalysis[] = [];
 let nextId = 1;
 
 // Fonction pour s'assurer que le dossier data existe
@@ -102,6 +121,7 @@ function loadAllData() {
   clientSpecificAxes = readJsonFile(CLIENT_SPECIFIC_AXES_FILE, []);
   questions = readJsonFile(QUESTIONS_FILE, []);
   settings = readJsonFile(SETTINGS_FILE, []);
+  domainAnalysis = readJsonFile(DOMAIN_ANALYSIS_FILE, []);
   
   // Calculer le prochain ID
   const allIds = [
@@ -126,6 +146,7 @@ function saveAllData() {
   writeJsonFile(CLIENT_SPECIFIC_AXES_FILE, clientSpecificAxes);
   writeJsonFile(QUESTIONS_FILE, questions);
   writeJsonFile(SETTINGS_FILE, settings);
+  writeJsonFile(DOMAIN_ANALYSIS_FILE, domainAnalysis);
 }
 
 // Initialiser les données par défaut si nécessaire
@@ -144,6 +165,7 @@ function initDefaultData() {
         image_c: '/images/collaboration.svg',
         image_d: '/images/cultivation.svg',
         order_index: 1,
+        domaine: 'Organisation du travail',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -159,6 +181,7 @@ function initDefaultData() {
         image_c: '/images/collaboration.svg',
         image_d: '/images/cultivation.svg',
         order_index: 2,
+        domaine: 'Résolution de problèmes',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -174,6 +197,7 @@ function initDefaultData() {
         image_c: '/images/collaboration.svg',
         image_d: '/images/cultivation.svg',
         order_index: 3,
+        domaine: 'Communication',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -189,6 +213,7 @@ function initDefaultData() {
         image_c: '/images/collaboration.svg',
         image_d: '/images/cultivation.svg',
         order_index: 4,
+        domaine: 'Environnement de travail',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
@@ -204,6 +229,7 @@ function initDefaultData() {
         image_c: '/images/collaboration.svg',
         image_d: '/images/cultivation.svg',
         order_index: 5,
+        domaine: 'Apprentissage',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -364,13 +390,18 @@ function generateShortUrl(): string {
   return result;
 }
 
-export function createQuestionnaireSession(sessionData: Omit<QuestionnaireSession, 'id' | 'created_at' | 'updated_at' | 'short_url'>): QuestionnaireSession {
+export function createQuestionnaireSession(sessionData: Omit<QuestionnaireSession, 'id' | 'created_at' | 'updated_at' | 'short_url' | 'frozen_analysis_axes'>): QuestionnaireSession {
   const now = new Date().toISOString();
   const shortUrl = generateShortUrl();
+  
+  // Récupérer les axes d'analyse effectifs pour ce client au moment de la création
+  const effectiveAxes = getEffectiveAnalysisAxesForClient(sessionData.client_id);
+  
   const newSession: QuestionnaireSession = {
     ...sessionData,
     id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     short_url: shortUrl,
+    frozen_analysis_axes: effectiveAxes, // Figer les axes au moment de la création
     created_at: now,
     updated_at: now
   };
@@ -423,6 +454,10 @@ export function getRespondentProfile(id: string): RespondentProfile | null {
 
 export function getRespondentProfilesBySession(sessionId: string): RespondentProfile[] {
   return respondentProfiles.filter(p => p.session_id === sessionId);
+}
+
+export function getRespondentProfiles(): RespondentProfile[] {
+  return respondentProfiles;
 }
 
 // ===== FONCTIONS POUR LA GESTION DES RÉPONSES DE SESSION =====
@@ -516,6 +551,31 @@ export function calculateSessionResults(sessionId: string): SessionResults {
 
 export function getSessionResults(sessionId: string): SessionResults | null {
   return sessionResults.find(r => r.session_id === sessionId) || null;
+}
+
+// Fonction pour calculer les résultats individuels d'un répondant
+export function calculateIndividualResults(profileId: string): Array<{culture: 'A' | 'B' | 'C' | 'D', count: number, percentage: number}> {
+  const responses = getSessionResponsesByProfile(profileId);
+  const totalQuestions = responses.length;
+  
+  if (totalQuestions === 0) {
+    return [];
+  }
+  
+  // Compter les réponses par culture
+  const counts = { A: 0, B: 0, C: 0, D: 0 };
+  responses.forEach(response => {
+    counts[response.answer]++;
+  });
+  
+  // Calculer les pourcentages et retourner toutes les cultures (même avec 0%)
+  const results = Object.entries(counts).map(([culture, count]) => ({
+    culture: culture as 'A' | 'B' | 'C' | 'D',
+    count,
+    percentage: Math.round((count / totalQuestions) * 100)
+  }));
+  
+  return results;
 }
 
 export function getAllSessionResults(): SessionResults[] {
@@ -767,6 +827,43 @@ export function getEffectiveAnalysisAxesForClient(clientId: string): AnalysisAxi
   return getAnalysisAxes();
 }
 
+// Fonction pour récupérer les axes d'analyse d'une session (figés au moment de la création)
+export function getSessionAnalysisAxes(sessionId: string): AnalysisAxis[] {
+  const session = questionnaireSessions.find(s => s.id === sessionId);
+  if (session && session.frozen_analysis_axes) {
+    return session.frozen_analysis_axes;
+  }
+  
+  // Migration : si la session n'a pas d'axes figés, les générer à partir des axes actuels
+  if (session && !session.frozen_analysis_axes) {
+    const effectiveAxes = getEffectiveAnalysisAxesForClient(session.client_id);
+    // Mettre à jour la session avec les axes figés
+    session.frozen_analysis_axes = effectiveAxes;
+    saveAllData();
+    return effectiveAxes;
+  }
+  
+  return [];
+}
+
+// Fonction de migration pour ajouter les axes figés aux sessions existantes
+export function migrateSessionsWithFrozenAxes(): void {
+  let updated = false;
+  
+  questionnaireSessions.forEach(session => {
+    if (!session.frozen_analysis_axes) {
+      const effectiveAxes = getEffectiveAnalysisAxesForClient(session.client_id);
+      session.frozen_analysis_axes = effectiveAxes;
+      updated = true;
+    }
+  });
+  
+  if (updated) {
+    saveAllData();
+    console.log('Migration des axes figés terminée pour toutes les sessions');
+  }
+}
+
 // ===== FONCTIONS POUR LA GESTION DES PARAMÈTRES (COMPATIBILITÉ) =====
 
 export function getSettings(): Setting[] {
@@ -926,7 +1023,7 @@ export function getShortUrlDiagnostics() {
       name: s.name,
       isActive: s.is_active
     })),
-    sessionsWithoutShortUrls: sessionsWithoutShortUrls.map(s => ({
+    sessionsWithoutShortUrlsList: sessionsWithoutShortUrls.map(s => ({
       id: s.id,
       name: s.name,
       isActive: s.is_active
@@ -934,7 +1031,96 @@ export function getShortUrlDiagnostics() {
   };
 }
 
+// Fonctions pour l'analyse par domaine
+export function calculateDomainAnalysis(sessionId: string): DomainAnalysis[] {
+  // Récupérer toutes les réponses pour cette session
+  const sessionResponses = getSessionResponses(sessionId);
+  
+  if (sessionResponses.length === 0) {
+    return [];
+  }
+
+  // Récupérer toutes les questions avec leurs domaines
+  const questionsWithDomains = questions.filter(q => q.domaine);
+  
+  // Grouper les réponses par domaine
+  const responsesByDomain: Record<string, SessionResponse[]> = {};
+  
+  sessionResponses.forEach(response => {
+    const question = questionsWithDomains.find(q => q.id === response.question_id);
+    if (question && question.domaine) {
+      if (!responsesByDomain[question.domaine]) {
+        responsesByDomain[question.domaine] = [];
+      }
+      responsesByDomain[question.domaine].push(response);
+    }
+  });
+
+  // Calculer les analyses pour chaque domaine
+  const analyses: DomainAnalysis[] = [];
+  
+  Object.entries(responsesByDomain).forEach(([domaine, responses]) => {
+    const counts = { A: 0, B: 0, C: 0, D: 0 };
+    
+    responses.forEach(response => {
+      counts[response.answer]++;
+    });
+    
+    const total = responses.length;
+    
+    // Calculs radar selon les formules demandées
+    // X = (A + B - C - D) / total
+    // Y = (A - B + C - D) / total
+    const radar_x = total > 0 ? (counts.A + counts.B - counts.C - counts.D) / total : 0;
+    const radar_y = total > 0 ? (counts.A - counts.B + counts.C - counts.D) / total : 0;
+    
+    const analysis: DomainAnalysis = {
+      id: `domain_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      session_id: sessionId,
+      domaine,
+      radar_x,
+      radar_y,
+      count_a: counts.A,
+      count_b: counts.B,
+      count_c: counts.C,
+      count_d: counts.D,
+      total_responses: total,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    analyses.push(analysis);
+  });
+  
+  return analyses;
+}
+
+export function saveDomainAnalysis(sessionId: string): DomainAnalysis[] {
+  // Supprimer les analyses existantes pour cette session
+  domainAnalysis = domainAnalysis.filter(da => da.session_id !== sessionId);
+  
+  // Calculer les nouvelles analyses
+  const newAnalyses = calculateDomainAnalysis(sessionId);
+  
+  // Ajouter les nouvelles analyses
+  domainAnalysis.push(...newAnalyses);
+  
+  // Sauvegarder
+  saveAllData();
+  
+  return newAnalyses;
+}
+
+export function getDomainAnalysis(sessionId: string): DomainAnalysis[] {
+  return domainAnalysis.filter(da => da.session_id === sessionId);
+}
+
+export function getAllDomainAnalysis(): DomainAnalysis[] {
+  return domainAnalysis;
+}
+
 // Initialiser la base de données
 loadAllData();
 initDefaultData();
+migrateSessionsWithFrozenAxes(); // Migration des axes figés
 saveAllData();

@@ -21,7 +21,13 @@ export async function GET(request: Request) {
     } else {
       // Récupérer tous les résultats de sessions
       const results = getAllSessionResults();
-      return NextResponse.json(results);
+      return NextResponse.json(results, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
     }
   } catch (error) {
     console.error('Erreur lors de la récupération des comparaisons:', error);

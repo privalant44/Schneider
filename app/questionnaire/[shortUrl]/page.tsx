@@ -85,19 +85,10 @@ export default function QuestionnaireShortUrlPage({ params }: { params: { shortU
       const settingsData = await settingsResponse.json();
       setSettings(settingsData);
 
-      // Récupérer les axes d'analyse pour ce client
-      const axesResponse = await fetch(`/api/client-analysis-axes?clientId=${sessionData.clientId}`);
-      const clientAxes = await axesResponse.json();
-      
-      if (clientAxes.length > 0) {
-        // Utiliser les axes spécifiques au client
-        setAnalysisAxes(clientAxes);
-      } else {
-        // Utiliser les axes par défaut
-        const defaultAxesResponse = await fetch('/api/analysis-axes');
-        const defaultAxes = await defaultAxesResponse.json();
-        setAnalysisAxes(defaultAxes);
-      }
+      // Récupérer les axes d'analyse figés de cette session
+      const sessionAxesResponse = await fetch(`/api/sessions/${sessionData.id}/analysis-axes`);
+      const sessionAxes = await sessionAxesResponse.json();
+      setAnalysisAxes(sessionAxes);
 
       // Randomiser les options pour chaque question
       const randomized: Record<number, RandomizedOption[]> = {};
@@ -195,8 +186,9 @@ export default function QuestionnaireShortUrlPage({ params }: { params: { shortU
       });
 
       if (profileResponse.ok) {
-        console.log('Profil de répondant créé avec succès');
-        router.push(`/resultats?sessionId=${session.id}`);
+        const profileData = await profileResponse.json();
+        console.log('Profil de répondant créé avec succès:', profileData);
+        router.push(`/resultats?sessionId=${session.id}&profileId=${profileData.id}`);
       } else {
         const errorData = await profileResponse.json();
         console.error('Erreur lors de la création du profil:', errorData);
@@ -271,12 +263,20 @@ export default function QuestionnaireShortUrlPage({ params }: { params: { shortU
   const renderWelcomeStep = () => (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-lg shadow-lg p-8">
-        {/* Header avec logos */}
-        <div className="flex justify-between items-center mb-8">
-          {/* Logo Anima Néo */}
-          <div className="flex items-center">
+        {/* Nouveau header centré */}
+        <div className="text-center mb-8">
+          {/* Titre principal */}
+          <h1 className="text-4xl font-bold text-gray-800 mb-6">
+            Le diagnostic culturel d'entreprise
+          </h1>
+          
+          {/* By avec logo Anima Néo */}
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <span className="text-lg text-gray-600 font-homemade">
+              By
+            </span>
             {settings.company_logo && (
-              <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100">
+              <div className="relative w-16 h-16">
                 <Image
                   src={settings.company_logo}
                   alt="Anima Néo"
@@ -286,24 +286,27 @@ export default function QuestionnaireShortUrlPage({ params }: { params: { shortU
               </div>
             )}
           </div>
-
-          {/* Logo et nom du client */}
-          <div className="flex items-center gap-4">
-            {client?.logo && (
-              <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
-                <Image
-                  src={client.logo}
-                  alt={client.name}
-                  fill
-                  className="object-contain"
-                />
+          
+          {/* Logo ou nom du client */}
+          <div className="mb-6">
+            {client?.logo ? (
+              <div className="flex justify-center">
+                <div className="relative w-28 h-28">
+                  <Image
+                    src={client.logo}
+                    alt={client.name}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
               </div>
+            ) : (
+              <h2 className="text-2xl font-semibold text-gray-700">{client?.name}</h2>
             )}
-            <div className="text-right">
-              <h1 className="text-2xl font-bold text-gray-800">{client?.name}</h1>
-              <p className="text-gray-600">{session?.name}</p>
-            </div>
           </div>
+          
+          {/* Nom de la session */}
+          <h3 className="text-xl text-gray-600">{session?.name}</h3>
         </div>
 
         {/* Texte de bienvenue paramétrable */}
@@ -348,6 +351,7 @@ export default function QuestionnaireShortUrlPage({ params }: { params: { shortU
             <p>• Prenez le temps de réfléchir à chaque question</p>
             <p>• Il n'y a pas de bonnes ou mauvaises réponses</p>
             <p>• Répondez selon votre expérience personnelle</p>
+            <p>• Choisissez la réponse la plus représentative en cas d'hésitations</p>
             <p>• Vous pouvez naviguer entre les questions si nécessaire</p>
           </div>
         </div>
@@ -432,19 +436,18 @@ export default function QuestionnaireShortUrlPage({ params }: { params: { shortU
           </div>
 
           <div className="flex justify-between">
-            <button
-              onClick={() => {
-                if (isFirstAxis) {
-                  setCurrentStep('welcome');
-                } else {
+            {!isFirstAxis && (
+              <button
+                onClick={() => {
                   setCurrentAxisIndex(currentAxisIndex - 1);
-                }
-              }}
-              className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Précédent
-            </button>
+                }}
+                className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Précédent
+              </button>
+            )}
+            {isFirstAxis && <div></div>}
 
             <button
               onClick={() => {
@@ -532,24 +535,23 @@ export default function QuestionnaireShortUrlPage({ params }: { params: { shortU
           </div>
 
           <div className="flex justify-between">
-            <button
-              onClick={() => {
-                if (isFirstQuestion) {
+            {!isFirstQuestion && (
+              <button
+                onClick={() => {
                   if (analysisAxes.length > 0) {
                     setCurrentStep('axes');
                     setCurrentAxisIndex(analysisAxes.length - 1);
                   } else {
-                    setCurrentStep('welcome');
+                    setCurrentQuestionIndex(currentQuestionIndex - 1);
                   }
-                } else {
-                  setCurrentQuestionIndex(currentQuestionIndex - 1);
-                }
-              }}
-              className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Précédent
-            </button>
+                }}
+                className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Précédent
+              </button>
+            )}
+            {isFirstQuestion && <div></div>}
 
             <button
               onClick={() => {
@@ -605,14 +607,7 @@ export default function QuestionnaireShortUrlPage({ params }: { params: { shortU
       <div className="container mx-auto px-4 py-8">
         {/* Header avec informations de la session */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Retour à l'accueil
-            </button>
+          <div className="flex justify-end items-center mb-4">
             <div className="text-sm text-gray-600">
               {currentStep === 'welcome' && 'Bienvenue'}
               {currentStep === 'axes' && `Profil - Question ${currentAxisIndex + 1} sur ${analysisAxes.length}`}

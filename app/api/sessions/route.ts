@@ -30,7 +30,13 @@ export async function GET(request: Request) {
     } else {
       // Récupérer toutes les sessions ou celles d'un client spécifique
       const sessions = getQuestionnaireSessions(clientId || undefined);
-      return NextResponse.json(sessions);
+      return NextResponse.json(sessions, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     }
   } catch (error) {
     console.error('Erreur lors de la récupération des sessions:', error);
@@ -43,7 +49,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { client_id, name, description, start_date, end_date, is_active } = await request.json();
+    const { client_id, name, description, start_date, end_date, is_active, planned_participants } = await request.json();
     
     if (!client_id || !name || !start_date) {
       return NextResponse.json(
@@ -58,7 +64,8 @@ export async function POST(request: Request) {
       description,
       start_date,
       end_date,
-      is_active: is_active !== undefined ? is_active : true
+      is_active: is_active !== undefined ? is_active : true,
+      planned_participants
     });
 
     return NextResponse.json(newSession);

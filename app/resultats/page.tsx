@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, ArrowLeft, Download } from 'lucide-react';
-import { CULTURE_TYPES } from '@/lib/types';
+import { CULTURE_TYPES, DomainAnalysis } from '@/lib/types';
 import RadarChart from '@/app/components/RadarChart';
 
 interface Result {
@@ -14,6 +14,7 @@ interface Result {
 
 export default function ResultatsPage() {
   const [results, setResults] = useState<Result[]>([]);
+  const [domainAnalysis, setDomainAnalysis] = useState<DomainAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -23,9 +24,9 @@ export default function ResultatsPage() {
 
   const fetchResults = async () => {
     try {
-      // Récupérer le sessionId depuis l'URL ou le localStorage
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('sessionId') || localStorage.getItem('lastSessionId');
+      const profileId = urlParams.get('profileId');
       
       if (!sessionId) {
         console.error('Aucun sessionId trouvé');
@@ -33,15 +34,31 @@ export default function ResultatsPage() {
         return;
       }
       
-      const response = await fetch(`/api/results?sessionId=${sessionId}`);
+      const url = profileId 
+        ? `/api/results?sessionId=${sessionId}&profileId=${profileId}`
+        : `/api/results?sessionId=${sessionId}`;
+      
+      const response = await fetch(url);
       const data = await response.json();
       
       if (response.ok) {
         console.log('Résultats reçus:', data);
-        // Trier les résultats par pourcentage décroissant
         const sortedResults = data.sort((a: any, b: any) => b.percentage - a.percentage);
-        console.log('Résultats triés:', sortedResults);
         setResults(sortedResults);
+        
+        // Récupérer les analyses par domaine seulement pour les sessions consolidées (sans profileId)
+        if (!profileId) {
+          try {
+            const domainResponse = await fetch(`/api/domain-analysis?sessionId=${sessionId}`);
+            if (domainResponse.ok) {
+              const domainData = await domainResponse.json();
+              setDomainAnalysis(domainData);
+              console.log('Analyses par domaine reçues:', domainData);
+            }
+          } catch (domainError) {
+            console.error('Erreur lors du chargement des analyses par domaine:', domainError);
+          }
+        }
       } else {
         console.error('Erreur lors du chargement des résultats:', data.error);
       }
@@ -57,10 +74,7 @@ export default function ResultatsPage() {
       return { cultures: [], isMultiple: false };
     }
     
-    // Trouver le pourcentage maximum
     const maxPercentage = Math.max(...results.map(r => r.percentage));
-    
-    // Trouver toutes les cultures avec ce pourcentage maximum
     const dominantCultures = results.filter(r => r.percentage === maxPercentage);
     
     return {
@@ -70,9 +84,7 @@ export default function ResultatsPage() {
   };
 
   const getCultureInfo = (letter: 'A' | 'B' | 'C' | 'D') => {
-    const info = CULTURE_TYPES.find(c => c.letter === letter);
-    console.log('Recherche culture pour lettre:', letter, 'Trouvé:', info);
-    return info;
+    return CULTURE_TYPES.find(c => c.letter === letter);
   };
 
   if (loading) {
@@ -89,13 +101,6 @@ export default function ResultatsPage() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Aucun résultat trouvé</h2>
           <p className="text-gray-600 mb-6">Il semble qu'il n'y ait pas de réponses enregistrées pour cette session.</p>
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 px-6 py-3 bg-anima-blue text-white rounded-lg hover:bg-anima-dark-blue transition-colors mx-auto"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Retour à l'accueil
-          </button>
         </div>
       </div>
     );
@@ -103,14 +108,11 @@ export default function ResultatsPage() {
 
   const dominantCulturesData = getDominantCultures();
   const { cultures: dominantCultures, isMultiple } = dominantCulturesData;
-  
-  console.log('Cultures dominantes:', dominantCultures);
-  console.log('Plusieurs cultures dominantes:', isMultiple);
+  const urlParams = new URLSearchParams(window.location.search);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="text-center mb-12">
           <div className="mb-6">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -118,19 +120,17 @@ export default function ResultatsPage() {
               Questionnaire Terminé !
             </h1>
             <p className="text-xl text-gray-600">
-              Voici votre profil de culture d'entreprise
+              {urlParams.get('profileId') ? 'Voici votre profil de culture d\'entreprise' : 'Voici les résultats consolidés de la session'}
             </p>
           </div>
         </div>
 
-        {/* Culture(s) dominante(s) */}
         <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
             {isMultiple ? 'Vos cultures dominantes' : 'Votre culture dominante'}
           </h2>
           
           {isMultiple ? (
-            // Affichage pour plusieurs cultures dominantes
             <div className="text-center">
               <div className="flex justify-center gap-4 mb-6">
                 {dominantCultures.map((culture) => {
@@ -158,17 +158,8 @@ export default function ResultatsPage() {
               <p className="text-lg text-gray-600 mb-4">
                 {dominantCultures[0]?.percentage || 0}% de vos réponses pour chaque culture
               </p>
-              <p className="text-gray-700 max-w-2xl mx-auto">
-                Vous avez un profil équilibré entre {dominantCultures.map((c, i) => {
-                  const info = getCultureInfo(c.culture);
-                  return i === dominantCultures.length - 1 ? 
-                    (dominantCultures.length > 1 ? ` et ${info?.name}` : info?.name) : 
-                    `${info?.name}${i < dominantCultures.length - 2 ? ', ' : ''}`;
-                }).join('')}.
-              </p>
             </div>
           ) : (
-            // Affichage pour une seule culture dominante
             <div className="text-center">
               {dominantCultures.length > 0 && (() => {
                 const dominantCulture = dominantCultures[0];
@@ -202,18 +193,16 @@ export default function ResultatsPage() {
           )}
         </div>
 
-        {/* Graphique radar */}
         <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
             Profil de culture d'entreprise
           </h2>
           
           <div className="flex justify-center mb-8">
-            <RadarChart results={results} />
+            <RadarChart results={results} domainAnalysis={domainAnalysis} />
           </div>
         </div>
 
-        {/* Détail des résultats avec jauges */}
         <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
             Répartition détaillée
@@ -222,7 +211,6 @@ export default function ResultatsPage() {
           <div className="space-y-4">
             {results.map((result) => {
               const cultureInfo = getCultureInfo(result.culture);
-              console.log('Culture:', result.culture, 'Info:', cultureInfo, 'Percentage:', result.percentage, 'Width style:', `${result.percentage}%`);
               
               return (
                 <div key={result.culture} className="flex items-center gap-4">
@@ -261,16 +249,59 @@ export default function ResultatsPage() {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Retour à l'accueil
-          </button>
-          
+        {/* Section analyse par domaine (seulement pour les sessions consolidées) */}
+        {domainAnalysis && domainAnalysis.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+              Analyse par domaine
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {domainAnalysis.map((domain) => (
+                <div key={domain.id} className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                    {domain.domaine}
+                  </h3>
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Position radar:</span>
+                      <span className="font-medium">
+                        ({domain.radar_x.toFixed(2)}, {domain.radar_y.toFixed(2)})
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total réponses:</span>
+                      <span className="font-medium">{domain.total_responses}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-red-600">{domain.count_a}</div>
+                        <div className="text-xs text-gray-500">A</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-yellow-600">{domain.count_b}</div>
+                        <div className="text-xs text-gray-500">B</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-blue-600">{domain.count_c}</div>
+                        <div className="text-xs text-gray-500">C</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-600">{domain.count_d}</div>
+                        <div className="text-xs text-gray-500">D</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-center">
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-6 py-3 bg-anima-blue text-white rounded-lg hover:bg-anima-dark-blue transition-colors"

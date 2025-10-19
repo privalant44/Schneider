@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { calculateResults, getSessionResults, getSessionResponses } from '@/lib/json-database';
+import { calculateResults, getSessionResults, getSessionResponses, calculateIndividualResults } from '@/lib/json-database';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
+    const profileId = searchParams.get('profileId');
     
     if (!sessionId) {
       return NextResponse.json(
@@ -13,8 +14,20 @@ export async function GET(request: Request) {
       );
     }
     
+    // Si un profileId est fourni, calculer les résultats individuels
+    if (profileId) {
+      const individualResults = calculateIndividualResults(profileId);
+      if (individualResults.length === 0) {
+        return NextResponse.json(
+          { error: 'Aucune réponse trouvée pour ce profil' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(individualResults);
+    }
+    
     // Essayer d'abord le nouveau système (sessions de questionnaire)
-    if (sessionId.startsWith('session_') && sessionId.includes('_')) {
+    if (sessionId.startsWith('session_')) {
       const sessionResults = getSessionResults(sessionId);
       if (sessionResults) {
         return NextResponse.json(sessionResults.culture_distribution);

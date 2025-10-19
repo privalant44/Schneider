@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Filter, X, Calendar, Users, Link, Eye, Copy, BarChart3 } from 'lucide-react';
+import { Plus, Edit, Trash2, Filter, X, Calendar, Users, Link, Eye, Copy, BarChart3, QrCode } from 'lucide-react';
 import { Client, QuestionnaireSession } from '@/lib/types';
 import AdminNavigation from '@/app/components/AdminNavigation';
 import CircularProgress from '@/app/components/CircularProgress';
+import QRCodeDisplay from '@/app/components/QRCodeDisplay';
 
 interface SessionWithStats extends QuestionnaireSession {
   client_name: string;
@@ -21,6 +22,7 @@ export default function SessionsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [editingSession, setEditingSession] = useState<SessionWithStats | null>(null);
+  const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     clientId: '',
     startDate: '',
@@ -110,6 +112,11 @@ export default function SessionsPage() {
 
   const viewResults = (sessionId: string) => {
     window.open(`/resultats?sessionId=${sessionId}`, '_blank');
+  };
+
+  const showQRCodeModal = (shortUrl: string) => {
+    const fullUrl = `${window.location.origin}/questionnaire/${shortUrl}`;
+    setShowQRCode(fullUrl);
   };
 
   const editSession = (session: SessionWithStats) => {
@@ -325,6 +332,13 @@ export default function SessionsPage() {
                         >
                           <Copy className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => showQRCodeModal(session.short_url)}
+                          className="text-green-600 hover:text-green-800"
+                          title="Afficher le QR Code"
+                        >
+                          <QrCode className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                     
@@ -400,6 +414,44 @@ export default function SessionsPage() {
                 setEditingSession(null);
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Modal QR Code */}
+      {showQRCode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-800">QR Code du Questionnaire</h3>
+              <button
+                onClick={() => setShowQRCode(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="text-center">
+              <QRCodeDisplay url={showQRCode} size={250} />
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-2">URL complète :</p>
+                <code className="text-xs text-blue-600 break-all">{showQRCode}</code>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(showQRCode);
+                  alert('URL copiée dans le presse-papiers !');
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Copier l'URL
+              </button>
+            </div>
           </div>
         </div>
       )}

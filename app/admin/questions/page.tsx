@@ -146,6 +146,11 @@ export default function QuestionsPage() {
                       <span className="bg-anima-blue text-white px-3 py-1 rounded-full text-sm font-medium">
                         Question {question.order_index}
                       </span>
+                      {question.domaine && (
+                        <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+                          {question.domaine}
+                        </span>
+                      )}
                     </div>
                     <p className="text-lg text-gray-800 mb-4">{question.question_text}</p>
                   </div>
@@ -266,7 +271,8 @@ function QuestionForm({
     image_c: question?.image_c || '',
     text_d: question?.text_d || '',
     image_d: question?.image_d || '',
-    order_index: question?.order_index || 1
+    order_index: question?.order_index || 1,
+    domaine: question?.domaine || ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -293,6 +299,19 @@ function QuestionForm({
         />
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Domaine *
+        </label>
+        <input
+          type="text"
+          value={formData.domaine}
+          onChange={(e) => setFormData({ ...formData, domaine: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-anima-blue focus:border-transparent"
+          placeholder="Ex: Organisation du travail, Communication, etc."
+          required
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">

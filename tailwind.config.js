@@ -12,6 +12,9 @@ module.exports = {
         'anima-light-blue': '#3b82f6',
         'anima-dark-blue': '#1e3a8a',
       },
+      fontFamily: {
+        'homemade': ['var(--font-homemade)', 'cursive'],
+      },
     },
   },
   plugins: [],
