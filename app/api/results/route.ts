@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { calculateResults, getSessionResults, getSessionResponses, calculateIndividualResults } from '@/lib/json-database';
+import { calculateResults, getSessionResults, getSessionResponses, calculateIndividualResults, recalculateSessionResults } from '@/lib/json-database';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
     const profileId = searchParams.get('profileId');
+    const recalculate = searchParams.get('recalculate') === 'true';
     
     if (!sessionId) {
       return NextResponse.json(
@@ -28,7 +29,16 @@ export async function GET(request: Request) {
     
     // Essayer d'abord le nouveau système (sessions de questionnaire)
     if (sessionId.startsWith('session_')) {
-      const sessionResults = getSessionResults(sessionId);
+      let sessionResults;
+      
+      if (recalculate) {
+        // Forcer le recalcul en temps réel
+        sessionResults = recalculateSessionResults(sessionId);
+      } else {
+        // Essayer d'abord les résultats stockés, sinon recalculer
+        sessionResults = getSessionResults(sessionId) || recalculateSessionResults(sessionId);
+      }
+      
       if (sessionResults) {
         return NextResponse.json(sessionResults.culture_distribution);
       }

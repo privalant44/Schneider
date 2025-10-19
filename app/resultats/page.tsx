@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, ArrowLeft, Download } from 'lucide-react';
+import { CheckCircle, ArrowLeft, Download, RefreshCw } from 'lucide-react';
 import { CULTURE_TYPES, DomainAnalysis } from '@/lib/types';
 import RadarChart from '@/app/components/RadarChart';
 
@@ -22,8 +22,9 @@ export default function ResultatsPage() {
     fetchResults();
   }, []);
 
-  const fetchResults = async () => {
+  const fetchResults = async (forceRecalculate = false) => {
     try {
+      setLoading(true);
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('sessionId') || localStorage.getItem('lastSessionId');
       const profileId = urlParams.get('profileId');
@@ -34,9 +35,13 @@ export default function ResultatsPage() {
         return;
       }
       
-      const url = profileId 
+      let url = profileId 
         ? `/api/results?sessionId=${sessionId}&profileId=${profileId}`
         : `/api/results?sessionId=${sessionId}`;
+      
+      if (forceRecalculate && !profileId) {
+        url += '&recalculate=true';
+      }
       
       const response = await fetch(url);
       const data = await response.json();
@@ -122,6 +127,11 @@ export default function ResultatsPage() {
             <p className="text-xl text-gray-600">
               {urlParams.get('profileId') ? 'Voici votre profil de culture d\'entreprise' : 'Voici les résultats consolidés de la session'}
             </p>
+            {!urlParams.get('profileId') && (
+              <p className="text-lg text-gray-500 mt-2">
+                Basé sur {results.reduce((total, result) => total + result.count, 0)} réponses au total
+              </p>
+            )}
           </div>
         </div>
 
@@ -301,7 +311,15 @@ export default function ResultatsPage() {
           </div>
         )}
 
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={() => fetchResults(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            title="Actualiser les données"
+          >
+            <RefreshCw className="w-5 h-5" />
+            Actualiser
+          </button>
           <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-6 py-3 bg-anima-blue text-white rounded-lg hover:bg-anima-dark-blue transition-colors"

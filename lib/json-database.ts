@@ -553,6 +553,72 @@ export function getSessionResults(sessionId: string): SessionResults | null {
   return sessionResults.find(r => r.session_id === sessionId) || null;
 }
 
+// Fonction pour recalculer les résultats d'une session en temps réel
+export function recalculateSessionResults(sessionId: string): SessionResults | null {
+  const responses = getSessionResponses(sessionId);
+  
+  if (responses.length === 0) {
+    return null;
+  }
+  
+  // Compter les réponses par culture
+  const cultureCounts = { A: 0, B: 0, C: 0, D: 0 };
+  const totalResponses = responses.length;
+  
+  responses.forEach(response => {
+    if (response.answer in cultureCounts) {
+      cultureCounts[response.answer as keyof typeof cultureCounts]++;
+    }
+  });
+  
+  // Calculer les pourcentages
+  const cultureDistribution = Object.entries(cultureCounts).map(([culture, count]) => ({
+    culture: culture as 'A' | 'B' | 'C' | 'D',
+    count,
+    percentage: Math.round((count / totalResponses) * 100)
+  }));
+  
+  // Calculer la répartition par critères démographiques
+  const respondentBreakdown = {
+    division: {} as Record<string, number>,
+    domain: {} as Record<string, number>,
+    age_range: {} as Record<string, number>,
+    gender: {} as Record<string, number>,
+    seniority: {} as Record<string, number>
+  };
+  
+  // Récupérer les profils de répondants pour cette session
+  const profiles = respondentProfiles.filter(profile => profile.session_id === sessionId);
+  
+  profiles.forEach(profile => {
+    if (profile.division) {
+      respondentBreakdown.division[profile.division] = (respondentBreakdown.division[profile.division] || 0) + 1;
+    }
+    if (profile.domain) {
+      respondentBreakdown.domain[profile.domain] = (respondentBreakdown.domain[profile.domain] || 0) + 1;
+    }
+    if (profile.age_range) {
+      respondentBreakdown.age_range[profile.age_range] = (respondentBreakdown.age_range[profile.age_range] || 0) + 1;
+    }
+    if (profile.gender) {
+      respondentBreakdown.gender[profile.gender] = (respondentBreakdown.gender[profile.gender] || 0) + 1;
+    }
+    if (profile.seniority) {
+      respondentBreakdown.seniority[profile.seniority] = (respondentBreakdown.seniority[profile.seniority] || 0) + 1;
+    }
+  });
+  
+  const results: SessionResults = {
+    session_id: sessionId,
+    total_responses: totalResponses,
+    culture_distribution: cultureDistribution,
+    respondent_breakdown: respondentBreakdown,
+    created_at: new Date().toISOString()
+  };
+  
+  return results;
+}
+
 // Fonction pour calculer les résultats individuels d'un répondant
 export function calculateIndividualResults(profileId: string): Array<{culture: 'A' | 'B' | 'C' | 'D', count: number, percentage: number}> {
   const responses = getSessionResponsesByProfile(profileId);
