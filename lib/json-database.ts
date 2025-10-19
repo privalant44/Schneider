@@ -6,10 +6,10 @@ import {
   RespondentProfile, 
   SessionResponse, 
   SessionResults, 
-  RespondentParameter,
   SessionComparison,
   AnalysisAxis,
-  ClientAnalysisAxis
+  ClientAnalysisAxis,
+  ClientSpecificAxis
 } from './types';
 
 // Chemins des fichiers JSON
@@ -19,9 +19,9 @@ const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 const RESPONDENT_PROFILES_FILE = path.join(DATA_DIR, 'respondent-profiles.json');
 const SESSION_RESPONSES_FILE = path.join(DATA_DIR, 'session-responses.json');
 const SESSION_RESULTS_FILE = path.join(DATA_DIR, 'session-results.json');
-const RESPONDENT_PARAMETERS_FILE = path.join(DATA_DIR, 'respondent-parameters.json');
 const ANALYSIS_AXES_FILE = path.join(DATA_DIR, 'analysis-axes.json');
 const CLIENT_ANALYSIS_AXES_FILE = path.join(DATA_DIR, 'client-analysis-axes.json');
+const CLIENT_SPECIFIC_AXES_FILE = path.join(DATA_DIR, 'client-specific-axes.json');
 const QUESTIONS_FILE = path.join(DATA_DIR, 'questions.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
@@ -53,9 +53,9 @@ let questionnaireSessions: QuestionnaireSession[] = [];
 let respondentProfiles: RespondentProfile[] = [];
 let sessionResponses: SessionResponse[] = [];
 let sessionResults: SessionResults[] = [];
-let respondentParameters: RespondentParameter[] = [];
 let analysisAxes: AnalysisAxis[] = [];
 let clientAnalysisAxes: ClientAnalysisAxis[] = [];
+let clientSpecificAxes: ClientSpecificAxis[] = [];
 let questions: Question[] = [];
 let settings: Setting[] = [];
 let nextId = 1;
@@ -97,9 +97,9 @@ function loadAllData() {
   respondentProfiles = readJsonFile(RESPONDENT_PROFILES_FILE, []);
   sessionResponses = readJsonFile(SESSION_RESPONSES_FILE, []);
   sessionResults = readJsonFile(SESSION_RESULTS_FILE, []);
-  respondentParameters = readJsonFile(RESPONDENT_PARAMETERS_FILE, []);
   analysisAxes = readJsonFile(ANALYSIS_AXES_FILE, []);
   clientAnalysisAxes = readJsonFile(CLIENT_ANALYSIS_AXES_FILE, []);
+  clientSpecificAxes = readJsonFile(CLIENT_SPECIFIC_AXES_FILE, []);
   questions = readJsonFile(QUESTIONS_FILE, []);
   settings = readJsonFile(SETTINGS_FILE, []);
   
@@ -121,9 +121,9 @@ function saveAllData() {
   writeJsonFile(RESPONDENT_PROFILES_FILE, respondentProfiles);
   writeJsonFile(SESSION_RESPONSES_FILE, sessionResponses);
   writeJsonFile(SESSION_RESULTS_FILE, sessionResults);
-  writeJsonFile(RESPONDENT_PARAMETERS_FILE, respondentParameters);
   writeJsonFile(ANALYSIS_AXES_FILE, analysisAxes);
   writeJsonFile(CLIENT_ANALYSIS_AXES_FILE, clientAnalysisAxes);
+  writeJsonFile(CLIENT_SPECIFIC_AXES_FILE, clientSpecificAxes);
   writeJsonFile(QUESTIONS_FILE, questions);
   writeJsonFile(SETTINGS_FILE, settings);
 }
@@ -460,6 +460,7 @@ export function calculateSessionResults(sessionId: string): SessionResults {
   });
   
   const totalResponses = responses.length;
+  const uniqueRespondents = new Set(responses.map(r => r.respondent_profile_id)).size;
   const cultureDistribution = Object.entries(cultureCounts).map(([culture, count]) => ({
     culture: culture as 'A' | 'B' | 'C' | 'D',
     count,
@@ -495,7 +496,7 @@ export function calculateSessionResults(sessionId: string): SessionResults {
   
   const results: SessionResults = {
     session_id: sessionId,
-    total_responses: totalResponses,
+    total_responses: uniqueRespondents, // Nombre de répondants uniques
     culture_distribution: cultureDistribution,
     respondent_breakdown: respondentBreakdown,
     created_at: new Date().toISOString()
@@ -521,57 +522,6 @@ export function getAllSessionResults(): SessionResults[] {
   return sessionResults;
 }
 
-// ===== FONCTIONS POUR LA GESTION DES PARAMÈTRES DE RÉPONDANTS =====
-
-export function getRespondentParameters(clientId?: string): RespondentParameter[] {
-  let params = respondentParameters;
-  if (clientId) {
-    params = params.filter(p => p.client_id === clientId);
-  }
-  return params.sort((a, b) => a.order - b.order);
-}
-
-export function createRespondentParameter(parameterData: Omit<RespondentParameter, 'id' | 'created_at'>): RespondentParameter {
-  const now = new Date().toISOString();
-  const newParameter: RespondentParameter = {
-    ...parameterData,
-    id: `param_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    created_at: now
-  };
-  respondentParameters.push(newParameter);
-  saveAllData();
-  return newParameter;
-}
-
-export function updateRespondentParameter(id: string, parameterData: Partial<Omit<RespondentParameter, 'id' | 'created_at'>>): RespondentParameter | null {
-  const index = respondentParameters.findIndex(p => p.id === id);
-  if (index !== -1) {
-    respondentParameters[index] = { ...respondentParameters[index], ...parameterData };
-    saveAllData();
-    return respondentParameters[index];
-  }
-  return null;
-}
-
-export function deleteRespondentParameter(id: string): boolean {
-  const index = respondentParameters.findIndex(p => p.id === id);
-  if (index !== -1) {
-    respondentParameters.splice(index, 1);
-    saveAllData();
-    return true;
-  }
-  return false;
-}
-
-export function deleteRespondentParametersByClient(clientId: string): boolean {
-  const initialLength = respondentParameters.length;
-  respondentParameters = respondentParameters.filter(p => p.client_id !== clientId);
-  if (respondentParameters.length !== initialLength) {
-    saveAllData();
-    return true;
-  }
-  return false;
-}
 
 // ===== FONCTIONS POUR LES COMPARAISONS ENTRE SESSIONS =====
 
@@ -751,6 +701,72 @@ export function deleteClientAnalysisAxes(clientId: string): void {
   saveAllData();
 }
 
+// ===== FONCTIONS POUR LA GESTION DES AXES SPÉCIFIQUES AUX CLIENTS =====
+
+export function getClientSpecificAxes(clientId: string): ClientSpecificAxis[] {
+  return clientSpecificAxes
+    .filter(ca => ca.client_id === clientId)
+    .sort((a, b) => a.order - b.order);
+}
+
+export function getClientSpecificAxis(id: string): ClientSpecificAxis | null {
+  return clientSpecificAxes.find(axis => axis.id === id) || null;
+}
+
+export function addClientAnalysisAxis(axis: Omit<ClientSpecificAxis, 'id' | 'created_at'>): ClientSpecificAxis {
+  const now = new Date().toISOString();
+  const newAxis: ClientSpecificAxis = {
+    ...axis,
+    id: `client_axis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    created_at: now
+  };
+  clientSpecificAxes.push(newAxis);
+  saveAllData();
+  return newAxis;
+}
+
+export function updateClientAnalysisAxis(id: string, axis: Partial<Omit<ClientSpecificAxis, 'id' | 'created_at' | 'client_id'>>): ClientSpecificAxis | null {
+  const index = clientSpecificAxes.findIndex(a => a.id === id);
+  if (index !== -1) {
+    clientSpecificAxes[index] = { ...clientSpecificAxes[index], ...axis };
+    saveAllData();
+    return clientSpecificAxes[index];
+  }
+  return null;
+}
+
+export function deleteClientAnalysisAxis(id: string): boolean {
+  const index = clientSpecificAxes.findIndex(a => a.id === id);
+  if (index !== -1) {
+    clientSpecificAxes.splice(index, 1);
+    saveAllData();
+    return true;
+  }
+  return false;
+}
+
+// Fonction pour obtenir les axes effectifs d'un client (spécifiques ou par défaut)
+export function getEffectiveAnalysisAxesForClient(clientId: string): AnalysisAxis[] {
+  const specificAxes = getClientSpecificAxes(clientId);
+  
+  // Si le client a des axes spécifiques, les utiliser
+  if (specificAxes.length > 0) {
+    return specificAxes.map(axis => ({
+      id: axis.id,
+      name: axis.name,
+      type: axis.type,
+      options: axis.options,
+      required: axis.required,
+      order: axis.order,
+      category: axis.category,
+      created_at: axis.created_at
+    }));
+  }
+  
+  // Sinon, utiliser les axes par défaut
+  return getAnalysisAxes();
+}
+
 // ===== FONCTIONS POUR LA GESTION DES PARAMÈTRES (COMPATIBILITÉ) =====
 
 export function getSettings(): Setting[] {
@@ -826,6 +842,47 @@ export function calculateResults(sessionId: string) {
   return [];
 }
 
+// ===== FONCTIONS DE SUPPRESSION =====
+
+export function deleteRespondentProfilesBySession(sessionId: string) {
+  const initialLength = respondentProfiles.length;
+  respondentProfiles = respondentProfiles.filter(profile => profile.session_id !== sessionId);
+  const deletedCount = initialLength - respondentProfiles.length;
+  
+  if (deletedCount > 0) {
+    writeJsonFile(RESPONDENT_PROFILES_FILE, respondentProfiles);
+    console.log(`Supprimé ${deletedCount} profil(s) de répondant(s) pour la session ${sessionId}`);
+  }
+  
+  return deletedCount;
+}
+
+export function deleteSessionResults(sessionId: string) {
+  const initialLength = sessionResults.length;
+  sessionResults = sessionResults.filter(result => result.session_id !== sessionId);
+  const deletedCount = initialLength - sessionResults.length;
+  
+  if (deletedCount > 0) {
+    writeJsonFile(SESSION_RESULTS_FILE, sessionResults);
+    console.log(`Supprimé ${deletedCount} résultat(s) de session pour la session ${sessionId}`);
+  }
+  
+  return deletedCount;
+}
+
+export function deleteSessionResponses(sessionId: string) {
+  const initialLength = sessionResponses.length;
+  sessionResponses = sessionResponses.filter(response => response.session_id !== sessionId);
+  const deletedCount = initialLength - sessionResponses.length;
+  
+  if (deletedCount > 0) {
+    writeJsonFile(SESSION_RESPONSES_FILE, sessionResponses);
+    console.log(`Supprimé ${deletedCount} réponse(s) de session pour la session ${sessionId}`);
+  }
+  
+  return deletedCount;
+}
+
 // ===== FONCTIONS DE DIAGNOSTIC =====
 
 export function getDatabaseStatus() {
@@ -837,8 +894,21 @@ export function getDatabaseStatus() {
     respondentProfiles: respondentProfiles.length,
     sessionResponses: sessionResponses.length,
     sessionResults: sessionResults.length,
-    respondentParameters: respondentParameters.length,
+    analysisAxes: analysisAxes.length,
+    clientSpecificAxes: clientSpecificAxes.length,
     nextId: nextId
+  };
+}
+
+export function getDatabaseStats() {
+  return {
+    clients: clients.length,
+    sessions: questionnaireSessions.length,
+    questions: questions.length,
+    respondentProfiles: respondentProfiles.length,
+    sessionResults: sessionResults.length,
+    analysisAxes: analysisAxes.length,
+    clientSpecificAxes: clientSpecificAxes.length
   };
 }
 

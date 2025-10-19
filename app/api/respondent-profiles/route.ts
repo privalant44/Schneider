@@ -51,13 +51,7 @@ export async function POST(request: Request) {
     
     const { 
       session_id, 
-      division, 
-      domain, 
-      age_range, 
-      gender, 
-      seniority, 
-      position, 
-      department,
+      axis_responses,
       answers 
     } = requestData;
     
@@ -72,13 +66,7 @@ export async function POST(request: Request) {
     // Créer le profil de répondant
     const newProfile = createRespondentProfile({
       session_id,
-      division,
-      domain,
-      age_range,
-      gender,
-      seniority,
-      position,
-      department
+      axis_responses: axis_responses || {}
     });
 
     // Ajouter les réponses si fournies

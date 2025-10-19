@@ -17,6 +17,15 @@ export default function RadarChart({ results }: RadarChartProps) {
   const center = size / 2;
   const radius = 200; // Agrandi de 180 à 200
   
+  // Vérification de sécurité pour éviter les erreurs
+  if (!results || !Array.isArray(results)) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p className="text-gray-500">Aucune donnée disponible</p>
+      </div>
+    );
+  }
+  
   // Créer un objet pour faciliter l'accès aux résultats
   const resultsMap = results.reduce((acc, result) => {
     acc[result.culture] = result;

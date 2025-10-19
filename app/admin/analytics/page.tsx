@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, TrendingDown, Users, Calendar, Building2, Compare } from 'lucide-react';
+import { BarChart3, TrendingUp, TrendingDown, Users, Calendar, Building2, Brain, ArrowRight } from 'lucide-react';
 import { QuestionnaireSession, Client, SessionResults, SessionComparison } from '@/lib/types';
 import RadarChart from '@/app/components/RadarChart';
 import AdminNavigation from '@/app/components/AdminNavigation';
@@ -31,11 +31,15 @@ export default function AnalyticsPage() {
       const clientsData = await clientsResponse.json();
       const resultsData = await resultsResponse.json();
 
-      setSessions(sessionsData);
-      setClients(clientsData);
-      setSessionResults(resultsData);
+      setSessions(Array.isArray(sessionsData) ? sessionsData : []);
+      setClients(Array.isArray(clientsData) ? clientsData : []);
+      setSessionResults(Array.isArray(resultsData) ? resultsData : []);
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
+      // En cas d'erreur, initialiser avec des tableaux vides
+      setSessions([]);
+      setClients([]);
+      setSessionResults([]);
     } finally {
       setLoading(false);
     }
@@ -62,12 +66,12 @@ export default function AnalyticsPage() {
   };
 
   const getClientName = (clientId: string) => {
-    const client = clients.find(c => c.id === clientId);
+    const client = clients?.find(c => c.id === clientId);
     return client?.name || 'Client inconnu';
   };
 
   const getSessionName = (sessionId: string) => {
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions?.find(s => s.id === sessionId);
     return session?.name || 'Session inconnue';
   };
 
@@ -75,6 +79,19 @@ export default function AnalyticsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-anima-blue"></div>
+      </div>
+    );
+  }
+
+  // Vérification de sécurité pour éviter les erreurs
+  if (!sessions || !clients || !sessionResults || 
+      !Array.isArray(sessions) || !Array.isArray(clients) || !Array.isArray(sessionResults)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-anima-blue mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des données...</p>
+        </div>
       </div>
     );
   }
@@ -98,7 +115,7 @@ export default function AnalyticsPage() {
                 <Building2 className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-gray-800">{clients.length}</h3>
+                <h3 className="text-2xl font-bold text-gray-800">{clients?.length || 0}</h3>
                 <p className="text-gray-600">Clients</p>
               </div>
             </div>
@@ -110,7 +127,7 @@ export default function AnalyticsPage() {
                 <Calendar className="w-8 h-8 text-green-600" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-gray-800">{sessions.length}</h3>
+                <h3 className="text-2xl font-bold text-gray-800">{sessions?.length || 0}</h3>
                 <p className="text-gray-600">Sessions</p>
               </div>
             </div>
@@ -123,7 +140,7 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-gray-800">
-                  {sessionResults.reduce((sum, result) => sum + result.total_responses, 0)}
+                  {sessionResults && sessionResults.length > 0 ? sessionResults.reduce((sum, result) => sum + result.total_responses, 0) : 0}
                 </h3>
                 <p className="text-gray-600">Réponses totales</p>
               </div>
@@ -136,9 +153,68 @@ export default function AnalyticsPage() {
                 <BarChart3 className="w-8 h-8 text-orange-600" />
               </div>
               <div>
-                <h3 className="text-2xl font-bold text-gray-800">{sessionResults.length}</h3>
+                <h3 className="text-2xl font-bold text-gray-800">{sessionResults?.length || 0}</h3>
                 <p className="text-gray-600">Sessions analysées</p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Analyse IA ChatGPT */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg shadow-lg p-6 mb-8 border border-blue-200">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
+                <Brain className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Analyse Intelligente par IA
+                </h2>
+                <p className="text-gray-600">
+                  Obtenez des insights avancés et des recommandations personnalisées
+                </p>
+              </div>
+            </div>
+            <a
+              href="/admin/analytics/comparison"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              <Brain className="w-5 h-5" />
+              Accéder à l'Analyse IA
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-lg p-4 border border-blue-100">
+              <h3 className="font-semibold text-gray-800 mb-2">📊 Analyse Comparative</h3>
+              <p className="text-sm text-gray-600">
+                Comparez deux sessions et obtenez une analyse détaillée de l'évolution de votre culture organisationnelle.
+              </p>
+            </div>
+            
+            <div className="bg-white rounded-lg p-4 border border-blue-100">
+              <h3 className="font-semibold text-gray-800 mb-2">📈 Analyse des Tendances</h3>
+              <p className="text-sm text-gray-600">
+                Découvrez les tendances et prédictions pour anticiper les évolutions de votre organisation.
+              </p>
+            </div>
+            
+            <div className="bg-white rounded-lg p-4 border border-blue-100">
+              <h3 className="font-semibold text-gray-800 mb-2">🎯 Recommandations</h3>
+              <p className="text-sm text-gray-600">
+                Recevez des recommandations stratégiques personnalisées pour améliorer votre culture.
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2 text-blue-800">
+              <Brain className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                Powered by ChatGPT - Analyses intelligentes et recommandations actionables
+              </span>
             </div>
           </div>
         </div>
@@ -160,7 +236,7 @@ export default function AnalyticsPage() {
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-anima-blue focus:border-transparent"
               >
                 <option value="">Sélectionner une session</option>
-                {sessions.map((session) => (
+                {sessions?.map((session) => (
                   <option key={session.id} value={session.id}>
                     {session.name} - {getClientName(session.client_id)} ({new Date(session.start_date).toLocaleDateString('fr-FR')})
                   </option>
@@ -178,7 +254,7 @@ export default function AnalyticsPage() {
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-anima-blue focus:border-transparent"
               >
                 <option value="">Sélectionner une session</option>
-                {sessions.map((session) => (
+                {sessions?.map((session) => (
                   <option key={session.id} value={session.id}>
                     {session.name} - {getClientName(session.client_id)} ({new Date(session.start_date).toLocaleDateString('fr-FR')})
                   </option>
@@ -192,7 +268,7 @@ export default function AnalyticsPage() {
             disabled={!selectedSession1 || !selectedSession2}
             className="flex items-center gap-2 px-4 py-2 bg-anima-blue text-white rounded-lg hover:bg-anima-dark-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Compare className="w-5 h-5" />
+            <BarChart3 className="w-5 h-5" />
             Comparer les sessions
           </button>
 
@@ -263,7 +339,7 @@ export default function AnalyticsPage() {
             Résultats par Session
           </h2>
           
-          {sessionResults.length === 0 ? (
+          {!sessionResults || sessionResults.length === 0 ? (
             <div className="text-center py-12">
               <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun résultat disponible</h3>
@@ -273,9 +349,9 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {sessionResults.map((result) => {
-                const session = sessions.find(s => s.id === result.session_id);
-                const client = session ? clients.find(c => c.id === session.client_id) : null;
+              {sessionResults?.map((result) => {
+                const session = sessions?.find(s => s.id === result.session_id);
+                const client = session ? clients?.find(c => c.id === session.client_id) : null;
                 
                 return (
                   <div key={result.session_id} className="border border-gray-200 rounded-lg p-6">

@@ -106,6 +106,7 @@ export interface QuestionnaireSession {
   end_date?: string;
   is_active: boolean;
   short_url?: string;
+  planned_participants?: number;
   created_at: string;
   updated_at: string;
 }
@@ -159,17 +160,11 @@ export interface ClientAnalysisAxis {
   created_at: string;
 }
 
-// Ancien type pour compatibilité (à supprimer progressivement)
-export interface RespondentParameter {
-  id: string;
-  client_id: string; // Association avec un client
-  name: string;
-  type: 'text' | 'select' | 'multiselect';
-  options?: string[];
-  required: boolean;
-  order: number;
-  created_at: string;
+// Type pour les axes spécifiques aux clients (copie des axes par défaut)
+export interface ClientSpecificAxis extends AnalysisAxis {
+  client_id: string;
 }
+
 
 // Types pour les comparaisons entre sessions
 export interface SessionComparison {

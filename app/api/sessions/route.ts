@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { id, name, description, start_date, end_date, is_active } = await request.json();
+    const { id, name, description, start_date, end_date, is_active, planned_participants } = await request.json();
     
     if (!id) {
       return NextResponse.json(
@@ -87,7 +87,8 @@ export async function PUT(request: Request) {
       description,
       start_date,
       end_date,
-      is_active
+      is_active,
+      planned_participants
     });
 
     if (updatedSession) {

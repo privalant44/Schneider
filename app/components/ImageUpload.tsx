@@ -52,6 +52,10 @@ export default function ImageUpload({
         body: formData,
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
 
       if (result.success) {
@@ -60,8 +64,8 @@ export default function ImageUpload({
         setError(result.error || 'Erreur lors de l\'upload');
       }
     } catch (error) {
-      setError('Erreur lors de l\'upload du fichier');
       console.error('Upload error:', error);
+      setError('Erreur lors de l\'upload du fichier');
     } finally {
       setIsUploading(false);
       // Reset file input

@@ -12,7 +12,9 @@ import {
   Calendar,
   HelpCircle as QuestionIcon,
   UserCog,
-  TestTube
+  TestTube,
+  Brain,
+  Database
 } from 'lucide-react';
 
 export default function AdminNavigation() {
@@ -53,13 +55,13 @@ export default function AdminNavigation() {
       name: 'Analyses et Comparaisons',
       href: '/admin/analytics',
       icon: BarChart3,
-      current: pathname === '/admin/analytics'
+      current: pathname === '/admin/analytics' || pathname === '/admin/analytics/comparison'
     },
     {
-      name: 'Tests',
-      href: '/admin/tests',
-      icon: TestTube,
-      current: pathname === '/admin/tests'
+      name: 'Base de Données',
+      href: '/admin/database',
+      icon: Database,
+      current: pathname === '/admin/database'
     }
   ];
 
@@ -98,14 +100,23 @@ export default function AdminNavigation() {
             })}
           </div>
 
-          {/* Help and back to main site */}
+          {/* Boutons en haut à droite */}
           <div className="flex items-center gap-2">
             <Link
-              href="/"
+              href="/admin/tests"
               className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Page de tests"
             >
-              <HelpCircle className="w-4 h-4" />
-              Retour au site
+              <TestTube className="w-4 h-4" />
+              Tests
+            </Link>
+            <Link
+              href="/admin/settings"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Paramètres de l'application"
+            >
+              <Settings className="w-4 h-4" />
+              Paramètres
             </Link>
           </div>
         </div>

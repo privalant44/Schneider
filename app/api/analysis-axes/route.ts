@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       category 
     } = await request.json();
     
+    const { addAnalysisAxis } = await import('@/lib/json-database');
     const newAxis = addAnalysisAxis({
       name,
       type,
@@ -56,6 +57,7 @@ export async function PUT(request: Request) {
       category 
     } = await request.json();
     
+    const { updateAnalysisAxis } = await import('@/lib/json-database');
     const updatedAxis = updateAnalysisAxis(id, {
       name,
       type,
@@ -94,6 +96,7 @@ export async function DELETE(request: Request) {
       );
     }
 
+    const { deleteAnalysisAxis } = await import('@/lib/json-database');
     const success = deleteAnalysisAxis(id);
     
     if (success) {

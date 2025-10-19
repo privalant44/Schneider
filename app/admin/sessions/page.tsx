@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Filter, X, Calendar, Users, Link, Eye, Copy } from 'lucide-react';
+import { Plus, Edit, Trash2, Filter, X, Calendar, Users, Link, Eye, Copy, BarChart3 } from 'lucide-react';
 import { Client, QuestionnaireSession } from '@/lib/types';
 import AdminNavigation from '@/app/components/AdminNavigation';
+import CircularProgress from '@/app/components/CircularProgress';
 
 interface SessionWithStats extends QuestionnaireSession {
   client_name: string;
@@ -18,6 +19,8 @@ export default function SessionsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [showSessionForm, setShowSessionForm] = useState(false);
+  const [editingSession, setEditingSession] = useState<SessionWithStats | null>(null);
   const [filters, setFilters] = useState({
     clientId: '',
     startDate: '',
@@ -74,6 +77,31 @@ export default function SessionsPage() {
     }
   };
 
+  const handleCreateSession = async (sessionData: Partial<QuestionnaireSession>) => {
+    try {
+      const url = editingSession ? `/api/sessions/${editingSession.id}` : '/api/sessions';
+      const method = editingSession ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sessionData)
+      });
+
+      if (response.ok) {
+        fetchData();
+        setShowSessionForm(false);
+        setEditingSession(null);
+      } else {
+        const errorData = await response.json();
+        alert(`Erreur lors de la sauvegarde de la session: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la session:', error);
+      alert('Erreur lors de la sauvegarde de la session');
+    }
+  };
+
   const copyShortUrl = (shortUrl: string) => {
     const fullUrl = `${window.location.origin}/questionnaire/${shortUrl}`;
     navigator.clipboard.writeText(fullUrl);
@@ -82,6 +110,11 @@ export default function SessionsPage() {
 
   const viewResults = (sessionId: string) => {
     window.open(`/resultats?sessionId=${sessionId}`, '_blank');
+  };
+
+  const editSession = (session: SessionWithStats) => {
+    setEditingSession(session);
+    setShowSessionForm(true);
   };
 
   const clearFilters = () => {
@@ -126,7 +159,7 @@ export default function SessionsPage() {
             </button>
             
             <button
-              onClick={() => window.location.href = '/admin/clients'}
+              onClick={() => setShowSessionForm(true)}
               className="flex items-center gap-2 px-4 py-2 bg-anima-blue text-white rounded-lg hover:bg-anima-dark-blue transition-colors"
             >
               <Plus className="w-5 h-5" />
@@ -216,9 +249,9 @@ export default function SessionsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date fin
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Réponses
-                  </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Participants
+                    </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     URL courte
                   </th>
@@ -264,9 +297,19 @@ export default function SessionsPage() {
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        {session.response_count}
+                      <div className="flex items-center gap-3">
+                        <CircularProgress 
+                          value={session.response_count} 
+                          max={session.planned_participants || 100}
+                          size={32}
+                          strokeWidth={3}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{session.response_count}</span>
+                          <span className="text-xs text-gray-500">
+                            {session.planned_participants ? `sur ${session.planned_participants}` : 'répondants'}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     
@@ -288,11 +331,19 @@ export default function SessionsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => viewResults(session.id)}
+                          onClick={() => editSession(session)}
                           className="text-green-600 hover:text-green-900"
+                          title="Éditer la session"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        
+                        <button
+                          onClick={() => viewResults(session.id)}
+                          className="text-purple-600 hover:text-purple-900"
                           title="Voir les résultats"
                         >
-                          <Eye className="w-4 h-4" />
+                          <BarChart3 className="w-4 h-4" />
                         </button>
                         
                         <button
@@ -332,6 +383,179 @@ export default function SessionsPage() {
           )}
         </div>
       </div>
+
+      {/* Formulaire de création de session */}
+      {showSessionForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-2xl">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">
+              {editingSession ? 'Modifier la Session' : 'Nouvelle Session'}
+            </h2>
+            <SessionForm
+              clients={clients}
+              session={editingSession}
+              onSave={handleCreateSession}
+              onCancel={() => {
+                setShowSessionForm(false);
+                setEditingSession(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+// Composant formulaire de session
+function SessionForm({ 
+  clients, 
+  session,
+  onSave, 
+  onCancel 
+}: { 
+  clients: Client[]; 
+  session?: SessionWithStats | null;
+  onSave: (data: Partial<QuestionnaireSession>) => void; 
+  onCancel: () => void; 
+}) {
+  const [formData, setFormData] = useState({
+    client_id: session?.client_id || '',
+    name: session?.name || '',
+    description: session?.description || '',
+    start_date: session?.start_date || new Date().toISOString().split('T')[0],
+    end_date: session?.end_date || '',
+    is_active: session?.is_active ?? true,
+    planned_participants: session?.planned_participants || undefined
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.client_id && formData.name.trim()) {
+      onSave(formData);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Client *
+        </label>
+        <select
+          value={formData.client_id}
+          onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-anima-blue focus:border-transparent"
+          required
+        >
+          <option value="">Sélectionner un client</option>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Nom de la session *
+        </label>
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-anima-blue focus:border-transparent"
+          placeholder="Ex: Questionnaire Q1 2024"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Description
+        </label>
+        <textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-anima-blue focus:border-transparent"
+          rows={3}
+          placeholder="Description de la session..."
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Date de début *
+          </label>
+          <input
+            type="date"
+            value={formData.start_date}
+            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-anima-blue focus:border-transparent"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Date de fin
+          </label>
+          <input
+            type="date"
+            value={formData.end_date}
+            onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-anima-blue focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Nombre de participants prévus
+        </label>
+        <input
+          type="number"
+          value={formData.planned_participants || ''}
+          onChange={(e) => setFormData({ ...formData, planned_participants: parseInt(e.target.value) || undefined })}
+          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-anima-blue focus:border-transparent"
+          placeholder="Ex: 50"
+          min="1"
+        />
+        <p className="text-sm text-gray-500 mt-1">
+          Optionnel - utilisé pour la jauge de progression
+        </p>
+      </div>
+
+      <div className="flex items-center">
+        <input
+          type="checkbox"
+          id="is_active"
+          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          checked={formData.is_active}
+          onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+        />
+        <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+          Session active (peut recevoir des réponses)
+        </label>
+      </div>
+
+      <div className="flex justify-end gap-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          Annuler
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-anima-blue text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Créer la session
+        </button>
+      </div>
+    </form>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Save, X, Building2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, Building2, Settings } from 'lucide-react';
 import { Client } from '@/lib/types';
 import ImageUpload from '@/app/components/ImageUpload';
 import Image from 'next/image';
@@ -173,6 +173,14 @@ export default function ClientsPage() {
                   
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => window.location.href = `/admin/client-axes/${client.id}`}
+                      className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors"
+                      title="Gérer les axes d'analyse"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+                    
+                    <button
                       onClick={() => handleEditClient(client)}
                       className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Modifier"
@@ -292,8 +300,8 @@ function ClientForm({
           Logo
         </label>
         <ImageUpload
-          onImageUpload={handleImageUpload}
-          currentImage={formData.logo}
+          value={formData.logo}
+          onChange={handleImageUpload}
         />
       </div>
 
