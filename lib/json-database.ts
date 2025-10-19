@@ -557,6 +557,8 @@ export function getSessionResults(sessionId: string): SessionResults | null {
 export function recalculateSessionResults(sessionId: string): SessionResults | null {
   const responses = getSessionResponses(sessionId);
   
+  console.log(`Recalcul pour session ${sessionId}: ${responses.length} réponses trouvées`);
+  
   if (responses.length === 0) {
     return null;
   }
@@ -615,6 +617,8 @@ export function recalculateSessionResults(sessionId: string): SessionResults | n
     respondent_breakdown: respondentBreakdown,
     created_at: new Date().toISOString()
   };
+  
+  console.log(`Résultats recalculés pour ${sessionId}:`, results);
   
   return results;
 }

@@ -19,7 +19,7 @@ export default function ResultatsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    fetchResults();
+    fetchResults(true); // Toujours recalculer au chargement initial
   }, []);
 
   const fetchResults = async (forceRecalculate = false) => {
@@ -48,6 +48,8 @@ export default function ResultatsPage() {
       
       if (response.ok) {
         console.log('Résultats reçus:', data);
+        console.log('URL utilisée:', url);
+        console.log('Force recalculate:', forceRecalculate);
         const sortedResults = data.sort((a: any, b: any) => b.percentage - a.percentage);
         setResults(sortedResults);
         
