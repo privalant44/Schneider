@@ -6,7 +6,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "test": "echo \"No tests specified\" && exit 0",
+    "docker:build": "docker build -t questionnaire-schneider .",
+    "docker:run": "docker run -p 3000:3000 questionnaire-schneider",
+    "docker:compose": "docker-compose up -d",
+    "docker:compose:build": "docker-compose up -d --build",
+    "docker:compose:down": "docker-compose down",
+    "docker:compose:logs": "docker-compose logs -f",
+    "deploy:build": "npm run type-check && npm run lint && npm run build",
+    "deploy:docker": "npm run deploy:build && npm run docker:build",
+    "health": "curl -f http://localhost:3000/api/health || exit 1",
+    "clean": "rm -rf .next out node_modules/.cache",
+    "clean:all": "rm -rf .next out node_modules package-lock.json && npm install"
   },
   "dependencies": {
     "@types/multer": "^1.4.11",

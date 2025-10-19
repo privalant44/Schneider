@@ -1,165 +1,218 @@
-# Questionnaire Schneider - Système Multi-Clients
+# 📊 Questionnaire Schneider - Application d'Analyse de Culture d'Entreprise
 
-Application de questionnaire de cartographie de culture d'entreprise pour Schneider avec support multi-clients et analyses avancées.
+Une application Next.js moderne pour la gestion et l'analyse de questionnaires de culture d'entreprise avec visualisation radar interactive.
 
 ## 🚀 Fonctionnalités
 
-### Gestion Multi-Clients
-- **Création de clients** avec logos et descriptions personnalisées
-- **Sessions de questionnaire** identifiées par date et client
-- **URLs courtes** pour faciliter la distribution aux collaborateurs
-- **Paramètres de répondants** configurables (division, domaine, âge, sexe, ancienneté, etc.)
-
-### Questionnaire Avancé
-- **4 typologies de culture** : Contrôle, Expertise, Collaboration, Cultivation
-- **Questions randomisées** pour éviter les biais
-- **Collecte d'informations détaillées** sur les répondants
-- **Interface responsive** et intuitive
-
-### Analyses et Comparaisons
-- **Radar charts** pour visualiser la distribution des cultures
-- **Comparaisons entre sessions** pour mesurer l'évolution
-- **Analyses par segments** (division, âge, etc.)
-- **Statistiques détaillées** par session et client
-
-### Administration Complète
-- **Gestion des questions** avec images personnalisées
-- **Configuration des paramètres** de répondants
-- **Suivi des sessions** et des réponses
-- **Interface d'administration** intuitive
-
-## 🏗️ Architecture
-
-### Base de Données
-- **Clients** : Informations sur les entreprises clientes
-- **Sessions** : Instances de questionnaire avec dates et paramètres
-- **Paramètres de répondants** : Configuration des informations à collecter
-- **Profils de répondants** : Données personnelles des participants
-- **Réponses** : Réponses aux questions avec liens vers les profils
-- **Résultats** : Calculs et analyses par session
-
-### APIs
-- `/api/clients` - Gestion des clients
-- `/api/sessions` - Gestion des sessions de questionnaire
-- `/api/respondent-parameters` - Configuration des paramètres
-- `/api/respondent-profiles` - Profils et réponses des participants
-- `/api/session-comparisons` - Comparaisons entre sessions
-- `/api/short-url` - Résolution des URLs courtes
-
-### Pages
-- `/` - Page d'accueil publique
-- `/admin` - Interface d'administration principale
-- `/admin/clients` - Gestion des clients et sessions
-- `/admin/respondent-parameters` - Configuration des paramètres
-- `/admin/analytics` - Analyses et comparaisons
-- `/questionnaire/[shortUrl]` - Questionnaire avec paramètres de session
+- **Gestion des questionnaires** : Création et administration des questions par domaine
+- **Sessions de collecte** : Gestion des sessions de questionnaire avec URLs courtes
+- **Analyse radar** : Visualisation interactive des résultats avec points par domaine
+- **Interface d'administration** : Panel complet pour la gestion des données
+- **API REST** : Endpoints complets pour toutes les opérations
+- **Sécurité** : Validation des données et gestion d'erreurs robuste
+- **Déploiement** : Configuration Docker et Nginx prête pour la production
 
 ## 🛠️ Technologies
 
-- **Next.js 14** - Framework React avec App Router
-- **TypeScript** - Typage statique
-- **Tailwind CSS** - Framework CSS utilitaire
-- **Lucide React** - Icônes modernes
-- **Base de données en mémoire** - Pour le développement (remplaçable par une vraie DB)
+- **Frontend** : Next.js 14, React 18, TypeScript, Tailwind CSS
+- **Backend** : API Routes Next.js, JSON Database
+- **Visualisation** : SVG Radar Chart personnalisé
+- **Déploiement** : Docker, Docker Compose, Nginx
+- **Outils** : ESLint, TypeScript, Lucide React
 
-## 📦 Installation
+## 📋 Prérequis
+
+- Node.js 18+ 
+- npm ou yarn
+- Docker (optionnel, pour le déploiement)
+
+## 🚀 Installation et Démarrage
+
+### Développement Local
 
 ```bash
-# Cloner le projet
-git clone [repository-url]
-cd schneider-questionnaire
+# Cloner le repository
+git clone <repository-url>
+cd questionnaire-schneider
 
 # Installer les dépendances
 npm install
 
-# Lancer en développement
+# Démarrer le serveur de développement
 npm run dev
 ```
 
-## 🎯 Utilisation
+L'application sera accessible sur [http://localhost:3000](http://localhost:3000)
 
-### 1. Configuration Initiale
-1. Accédez à `/admin` pour l'interface d'administration
-2. Configurez les **paramètres de répondants** (division, âge, etc.)
-3. Créez vos **questions** avec images personnalisées
+### Déploiement avec Docker
 
-### 2. Gestion des Clients
-1. Allez dans **Gestion des Clients**
-2. Créez un nouveau client avec logo et description
-3. Créez une **session de questionnaire** avec dates de début/fin
-4. Copiez l'**URL courte** générée automatiquement
+```bash
+# Build et démarrage avec Docker Compose
+npm run docker:compose:build
 
-### 3. Distribution du Questionnaire
-1. Partagez l'URL courte avec les collaborateurs
-2. Les participants remplissent leurs informations personnelles
-3. Ils répondent aux questions du questionnaire
-4. Les réponses sont automatiquement liées à la session
-
-### 4. Analyses et Comparaisons
-1. Consultez les **Analyses et Comparaisons**
-2. Visualisez les résultats par session avec radar charts
-3. Comparez l'évolution entre différentes sessions
-4. Analysez les réponses par segments de population
-
-## 🔧 Configuration Avancée
-
-### Paramètres de Répondants
-- **Texte libre** : Pour des réponses ouvertes
-- **Sélection unique** : Liste déroulante avec options prédéfinies
-- **Sélection multiple** : Cases à cocher pour plusieurs choix
-- **Ordre personnalisable** : Réorganisez l'ordre d'affichage
-- **Paramètres requis/optionnels** : Contrôlez la collecte d'informations
-
-### Sessions de Questionnaire
-- **Dates de début/fin** : Contrôlez la période d'ouverture
-- **Statut actif/inactif** : Activez/désactivez les sessions
-- **URLs courtes uniques** : Générées automatiquement
-- **Liens avec clients** : Organisation par entreprise
-
-## 📊 Exemples d'Utilisation
-
-### Cartographie d'Entreprise
-1. Créez un client "Entreprise ABC"
-2. Configurez des paramètres : Division, Ancienneté, Poste
-3. Créez une session "Cartographie Q1 2024"
-4. Distribuez l'URL courte aux 500 collaborateurs
-5. Analysez les résultats par division et ancienneté
-
-### Comparaison Temporelle
-1. Créez une première session en janvier
-2. Créez une deuxième session en juin
-3. Comparez l'évolution des cultures
-4. Identifiez les changements par segment
-
-## 🚀 Déploiement
-
-### Variables d'Environnement
-```env
-NEXT_PUBLIC_APP_URL=https://votre-domaine.com
+# Ou build manuel
+npm run docker:build
+npm run docker:run
 ```
 
-### Base de Données de Production
-Remplacez la base de données en mémoire par :
-- PostgreSQL
-- MySQL
-- MongoDB
-- Ou toute autre base de données de votre choix
+### Scripts Disponibles
 
-## 📝 Notes de Développement
+```bash
+# Développement
+npm run dev              # Serveur de développement
+npm run build            # Build de production
+npm run start            # Serveur de production
+npm run lint             # Vérification ESLint
+npm run lint:fix         # Correction automatique ESLint
+npm run type-check       # Vérification TypeScript
 
-- La base de données actuelle est en mémoire (redémarre à chaque relance)
-- Pour la production, implémentez une vraie base de données
-- Les images sont stockées dans `/public/uploads/`
-- Le système supporte plusieurs centaines de répondants par session
+# Docker
+npm run docker:build     # Build de l'image Docker
+npm run docker:run       # Exécution du conteneur
+npm run docker:compose   # Démarrage avec Docker Compose
+npm run docker:compose:down  # Arrêt des conteneurs
+
+# Déploiement
+npm run deploy:build     # Build complet pour déploiement
+npm run deploy:docker    # Build et Docker pour déploiement
+npm run health           # Vérification de santé de l'application
+
+# Maintenance
+npm run clean            # Nettoyage des caches
+npm run clean:all        # Nettoyage complet et réinstallation
+```
+
+## 📁 Structure du Projet
+
+```
+├── app/                    # Pages et API Routes Next.js
+│   ├── admin/             # Interface d'administration
+│   ├── api/               # Endpoints API
+│   ├── components/        # Composants React réutilisables
+│   ├── questionnaire/     # Pages de questionnaire
+│   └── resultats/         # Pages de résultats
+├── lib/                   # Logique métier et utilitaires
+│   ├── utils/             # Utilitaires (validation, logging, erreurs)
+│   ├── database.ts        # Interface base de données
+│   ├── json-database.ts   # Implémentation JSON
+│   └── types.ts           # Types TypeScript
+├── data/                  # Base de données JSON
+├── public/                # Assets statiques
+├── Dockerfile             # Configuration Docker
+├── docker-compose.yml     # Orchestration Docker
+├── nginx.conf             # Configuration Nginx
+└── next.config.js         # Configuration Next.js
+```
+
+## 🔧 Configuration
+
+### Variables d'Environnement
+
+Créez un fichier `.env.local` :
+
+```env
+NODE_ENV=production
+PORT=3000
+NEXT_TELEMETRY_DISABLED=1
+```
+
+### Configuration Docker
+
+Le fichier `docker-compose.yml` configure :
+- Application Next.js sur le port 3000
+- Nginx en reverse proxy sur les ports 80/443
+- Volumes persistants pour les données
+- Health checks automatiques
+
+## 📊 API Endpoints
+
+### Sessions
+- `GET /api/sessions` - Liste des sessions
+- `POST /api/sessions` - Créer une session
+- `GET /api/sessions/[id]` - Détails d'une session
+- `PUT /api/sessions/[id]` - Modifier une session
+
+### Questions
+- `GET /api/questions` - Liste des questions
+- `POST /api/questions` - Créer une question
+- `PUT /api/questions/[id]` - Modifier une question
+
+### Résultats
+- `GET /api/results` - Résultats de session
+- `GET /api/domain-analysis` - Analyse par domaine
+
+### Santé
+- `GET /api/health` - Statut de l'application
+
+## 🔒 Sécurité
+
+- Validation des données d'entrée
+- Headers de sécurité HTTP
+- Gestion d'erreurs centralisée
+- Logging des actions utilisateur
+- Protection contre les attaques courantes
+
+## 📈 Monitoring
+
+L'endpoint `/api/health` fournit :
+- Statut de l'application
+- Utilisation mémoire
+- Santé de la base de données
+- Santé du système de fichiers
+- Temps de fonctionnement
+
+## 🚀 Déploiement en Production
+
+### Avec Docker Compose
+
+```bash
+# Déploiement complet
+npm run docker:compose:build
+
+# Vérification
+npm run health
+```
+
+### Configuration Nginx
+
+Le fichier `nginx.conf` inclut :
+- SSL/TLS avec redirection HTTP vers HTTPS
+- Compression gzip
+- Cache pour les assets statiques
+- Headers de sécurité
+- Load balancing
+
+### Sauvegarde des Données
+
+Les données sont stockées dans le volume Docker `./data`. Pour sauvegarder :
+
+```bash
+# Sauvegarde
+tar -czf backup-$(date +%Y%m%d).tar.gz data/
+
+# Restauration
+tar -xzf backup-YYYYMMDD.tar.gz
+```
 
 ## 🤝 Contribution
 
 1. Fork le projet
-2. Créez une branche feature (`git checkout -b feature/nouvelle-fonctionnalite`)
-3. Committez vos changements (`git commit -am 'Ajout nouvelle fonctionnalité'`)
-4. Push vers la branche (`git push origin feature/nouvelle-fonctionnalite`)
-5. Ouvrez une Pull Request
+2. Créer une branche feature (`git checkout -b feature/AmazingFeature`)
+3. Commit les changements (`git commit -m 'Add some AmazingFeature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrir une Pull Request
 
-## 📄 Licence
+## 📝 Licence
 
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+Ce projet est sous licence propriétaire Schneider Electric.
+
+## 📞 Support
+
+Pour toute question ou problème :
+- Créer une issue sur GitHub
+- Contacter l'équipe de développement
+
+---
+
+**Version** : 1.0.0  
+**Dernière mise à jour** : 2024-01-20
