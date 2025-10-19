@@ -75,7 +75,11 @@ export default function ResultatsPage() {
         // Récupérer les analyses par domaine seulement pour les sessions consolidées (sans profileId)
         if (!profileId) {
           try {
-            const domainResponse = await fetch(`/api/domain-analysis?sessionId=${sessionId}&t=${Date.now()}`);
+            let domainUrl = `/api/domain-analysis?sessionId=${sessionId}&t=${Date.now()}`;
+            if (forceRecalculate) {
+              domainUrl += '&recalculate=true';
+            }
+            const domainResponse = await fetch(domainUrl);
             if (domainResponse.ok) {
               const domainData = await domainResponse.json();
               setDomainAnalysis(domainData);
