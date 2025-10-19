@@ -23,9 +23,9 @@ export default function AdminNavigation() {
   const navigationItems = [
     {
       name: 'Accueil',
-      href: '/admin',
+      href: '/',
       icon: Home,
-      current: pathname === '/admin'
+      current: pathname === '/'
     },
     {
       name: 'Gestion des Clients',
@@ -71,7 +71,7 @@ export default function AdminNavigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-4">
-            <Link href="/admin" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-anima-blue rounded-lg flex items-center justify-center">
                 <Settings className="w-5 h-5 text-white" />
               </div>
