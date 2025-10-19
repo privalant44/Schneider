@@ -17,6 +17,7 @@ export default function ResultatsPage() {
   const [domainAnalysis, setDomainAnalysis] = useState<DomainAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -61,8 +62,13 @@ export default function ResultatsPage() {
         console.log('Force recalculate:', forceRecalculate);
         const sortedResults = data.sort((a: any, b: any) => b.percentage - a.percentage);
         console.log('Résultats triés avant setResults:', sortedResults);
-        setResults(sortedResults);
-        console.log('setResults appelé avec:', sortedResults);
+        // Vider l'état avant de le mettre à jour pour forcer le re-rendu
+        setResults([]);
+        setTimeout(() => {
+          setResults(sortedResults);
+          setRefreshKey(prev => prev + 1); // Forcer le re-rendu
+          console.log('setResults appelé avec:', sortedResults);
+        }, 10);
         
         // Récupérer les analyses par domaine seulement pour les sessions consolidées (sans profileId)
         if (!profileId) {
@@ -134,7 +140,7 @@ export default function ResultatsPage() {
   console.log('Total des réponses affiché:', results.reduce((total, result) => total + result.count, 0));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div key={refreshKey} className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <div className="mb-6">
