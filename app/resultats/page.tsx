@@ -16,6 +16,7 @@ export default function ResultatsPage() {
   const [results, setResults] = useState<Result[]>([]);
   const [domainAnalysis, setDomainAnalysis] = useState<DomainAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -24,7 +25,11 @@ export default function ResultatsPage() {
 
   const fetchResults = async (forceRecalculate = false) => {
     try {
-      setLoading(true);
+      if (forceRecalculate) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('sessionId') || localStorage.getItem('lastSessionId');
       const profileId = urlParams.get('profileId');
@@ -32,6 +37,7 @@ export default function ResultatsPage() {
       if (!sessionId) {
         console.error('Aucun sessionId trouvé');
         setLoading(false);
+        setRefreshing(false);
         return;
       }
       
@@ -42,6 +48,9 @@ export default function ResultatsPage() {
       if (forceRecalculate && !profileId) {
         url += '&recalculate=true';
       }
+      
+      // Ajouter un timestamp pour éviter le cache
+      url += `&t=${Date.now()}`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -56,7 +65,7 @@ export default function ResultatsPage() {
         // Récupérer les analyses par domaine seulement pour les sessions consolidées (sans profileId)
         if (!profileId) {
           try {
-            const domainResponse = await fetch(`/api/domain-analysis?sessionId=${sessionId}`);
+            const domainResponse = await fetch(`/api/domain-analysis?sessionId=${sessionId}&t=${Date.now()}`);
             if (domainResponse.ok) {
               const domainData = await domainResponse.json();
               setDomainAnalysis(domainData);
@@ -73,6 +82,7 @@ export default function ResultatsPage() {
       console.error('Erreur lors du chargement des résultats:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -316,11 +326,16 @@ export default function ResultatsPage() {
         <div className="flex justify-center gap-4">
           <button
             onClick={() => fetchResults(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            disabled={refreshing}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+              refreshing 
+                ? 'bg-gray-400 text-white cursor-not-allowed' 
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
             title="Actualiser les données"
           >
-            <RefreshCw className="w-5 h-5" />
-            Actualiser
+            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Actualisation...' : 'Actualiser'}
           </button>
           <button
             onClick={() => window.print()}
