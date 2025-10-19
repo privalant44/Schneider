@@ -217,11 +217,30 @@ export default function RadarChart({ results, domainAnalysis = [] }: RadarChartP
         ))}
         
         {/* Points par domaine (seulement si domainAnalysis est fourni) */}
-        {domainAnalysis && domainAnalysis.length > 0 && domainAnalysis.map((domain) => {
+        {domainAnalysis && domainAnalysis.length > 0 && domainAnalysis.map((domain, index) => {
           // Convertir les coordonnées radar (X, Y) en position sur le graphique
           // X et Y sont normalisés entre -1 et 1, on les convertit en position sur le radar
           const x = center + (domain.radar_x * radius * 0.8); // 0.8 pour laisser de la marge
           const y = center - (domain.radar_y * radius * 0.8); // Inverser Y car SVG a Y vers le bas
+          
+          // Calculer la position du libellé en fonction de la proximité des autres points
+          let labelOffset = -30; // Par défaut, libellé au-dessus
+          
+          // Vérifier s'il y a des points proches dans la même zone
+          const nearbyPoints = domainAnalysis.filter((otherDomain, otherIndex) => {
+            if (otherIndex === index) return false;
+            const otherX = center + (otherDomain.radar_x * radius * 0.8);
+            const otherY = center - (otherDomain.radar_y * radius * 0.8);
+            const distance = Math.sqrt(Math.pow(x - otherX, 2) + Math.pow(y - otherY, 2));
+            return distance < 80; // Si distance < 80px, considérer comme proche
+          });
+          
+          // Si des points sont proches, alterner la position du libellé
+          if (nearbyPoints.length > 0) {
+            labelOffset = index % 2 === 0 ? -30 : 30; // Alterner entre haut et bas
+          }
+          
+          const labelY = y + labelOffset;
           
           return (
             <g key={domain.id}>
@@ -239,7 +258,7 @@ export default function RadarChart({ results, domainAnalysis = [] }: RadarChartP
               {/* Label du domaine */}
               <text
                 x={x}
-                y={y - 30}
+                y={labelY}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 className="text-base font-medium text-purple-700 fill-current"
