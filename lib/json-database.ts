@@ -1106,6 +1106,8 @@ export function calculateDomainAnalysis(sessionId: string): DomainAnalysis[] {
   // Récupérer toutes les réponses pour cette session
   const sessionResponses = getSessionResponses(sessionId);
   
+  console.log(`Calcul des analyses par domaine pour ${sessionId}: ${sessionResponses.length} réponses trouvées`);
+  
   if (sessionResponses.length === 0) {
     return [];
   }
@@ -1162,6 +1164,8 @@ export function calculateDomainAnalysis(sessionId: string): DomainAnalysis[] {
     analyses.push(analysis);
   });
   
+  console.log(`Analyses par domaine calculées pour ${sessionId}:`, analyses);
+  
   return analyses;
 }
 
@@ -1169,11 +1173,15 @@ export function saveDomainAnalysis(sessionId: string): DomainAnalysis[] {
   // Supprimer les analyses existantes pour cette session
   domainAnalysis = domainAnalysis.filter(da => da.session_id !== sessionId);
   
+  console.log(`Sauvegarde des analyses par domaine pour ${sessionId}: ${domainAnalysis.length} analyses existantes supprimées`);
+  
   // Calculer les nouvelles analyses
   const newAnalyses = calculateDomainAnalysis(sessionId);
   
   // Ajouter les nouvelles analyses
   domainAnalysis.push(...newAnalyses);
+  
+  console.log(`Analyses par domaine sauvegardées pour ${sessionId}: ${newAnalyses.length} nouvelles analyses ajoutées`);
   
   // Sauvegarder
   saveAllData();
