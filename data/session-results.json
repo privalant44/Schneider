@@ -1,0 +1,172 @@
+[
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "total_responses": 11,
+    "culture_distribution": [
+      {
+        "culture": "A",
+        "count": 16,
+        "percentage": 29
+      },
+      {
+        "culture": "B",
+        "count": 12,
+        "percentage": 22
+      },
+      {
+        "culture": "C",
+        "count": 15,
+        "percentage": 27
+      },
+      {
+        "culture": "D",
+        "count": 12,
+        "percentage": 22
+      }
+    ],
+    "respondent_breakdown": {
+      "division": {},
+      "domain": {},
+      "age_range": {},
+      "gender": {},
+      "seniority": {}
+    },
+    "created_at": "2025-11-05T10:11:45.343Z"
+  },
+  {
+    "session_id": "session_1760966860000_pvpbrqdvl",
+    "total_responses": 3,
+    "culture_distribution": [
+      {
+        "culture": "A",
+        "count": 5,
+        "percentage": 33
+      },
+      {
+        "culture": "B",
+        "count": 3,
+        "percentage": 20
+      },
+      {
+        "culture": "C",
+        "count": 6,
+        "percentage": 40
+      },
+      {
+        "culture": "D",
+        "count": 1,
+        "percentage": 7
+      }
+    ],
+    "respondent_breakdown": {
+      "division": {},
+      "domain": {},
+      "age_range": {},
+      "gender": {},
+      "seniority": {}
+    },
+    "created_at": "2025-10-21T13:33:18.097Z"
+  },
+  {
+    "session_id": "session_1762365460325_iukrj0aqp",
+    "total_responses": 2,
+    "culture_distribution": [
+      {
+        "culture": "A",
+        "count": 4,
+        "percentage": 40
+      },
+      {
+        "culture": "B",
+        "count": 4,
+        "percentage": 40
+      },
+      {
+        "culture": "C",
+        "count": 2,
+        "percentage": 20
+      },
+      {
+        "culture": "D",
+        "count": 0,
+        "percentage": 0
+      }
+    ],
+    "respondent_breakdown": {
+      "division": {},
+      "domain": {},
+      "age_range": {},
+      "gender": {},
+      "seniority": {}
+    },
+    "created_at": "2025-11-05T17:59:40.366Z"
+  },
+  {
+    "session_id": "session_1762438696528_fnndx7ftq",
+    "total_responses": 1,
+    "culture_distribution": [
+      {
+        "culture": "A",
+        "count": 3,
+        "percentage": 60
+      },
+      {
+        "culture": "B",
+        "count": 1,
+        "percentage": 20
+      },
+      {
+        "culture": "C",
+        "count": 1,
+        "percentage": 20
+      },
+      {
+        "culture": "D",
+        "count": 0,
+        "percentage": 0
+      }
+    ],
+    "respondent_breakdown": {
+      "division": {},
+      "domain": {},
+      "age_range": {},
+      "gender": {},
+      "seniority": {}
+    },
+    "created_at": "2025-11-06T14:19:39.869Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "total_responses": 1,
+    "culture_distribution": [
+      {
+        "culture": "A",
+        "count": 2,
+        "percentage": 40
+      },
+      {
+        "culture": "B",
+        "count": 0,
+        "percentage": 0
+      },
+      {
+        "culture": "C",
+        "count": 3,
+        "percentage": 60
+      },
+      {
+        "culture": "D",
+        "count": 0,
+        "percentage": 0
+      }
+    ],
+    "respondent_breakdown": {
+      "division": {},
+      "domain": {},
+      "age_range": {},
+      "gender": {},
+      "seniority": {}
+    },
+    "created_at": "2025-11-23T15:40:23.409Z"
+  }
+]

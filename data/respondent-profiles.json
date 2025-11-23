@@ -1,0 +1,235 @@
+[
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Générale",
+      "axis_2": "ff",
+      "axis_3": "Sales",
+      "axis_4": "ff",
+      "axis_5": "Femme",
+      "axis_6": "56-65 ans",
+      "axis_7": "10-15 ans"
+    },
+    "id": "profile_1760897044829_pdsp3qq75",
+    "created_at": "2025-10-19T18:04:04.829Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Générale",
+      "axis_2": "DG",
+      "axis_3": "IT",
+      "axis_4": "DG",
+      "axis_5": "Homme",
+      "axis_6": "56-65 ans",
+      "axis_7": "10-15 ans"
+    },
+    "id": "profile_1760906766084_myteq420v",
+    "created_at": "2025-10-19T20:46:06.084Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Technique",
+      "axis_2": "ff",
+      "axis_3": "Marketing",
+      "axis_4": "ff",
+      "axis_5": "Femme",
+      "axis_6": "56-65 ans",
+      "axis_7": "5-10 ans"
+    },
+    "id": "profile_1760906897242_dh23owzjv",
+    "created_at": "2025-10-19T20:48:17.242Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Commerciale",
+      "axis_2": "ff",
+      "axis_3": "Marketing",
+      "axis_4": "ff",
+      "axis_5": "Homme",
+      "axis_6": "56-65 ans",
+      "axis_7": "Plus de 15 ans"
+    },
+    "id": "profile_1760907023844_h5hvhg34r",
+    "created_at": "2025-10-19T20:50:23.844Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Générale",
+      "axis_2": "ff",
+      "axis_3": "HR",
+      "axis_4": "fff",
+      "axis_5": "Homme",
+      "axis_6": "56-65 ans",
+      "axis_7": "3-5 ans"
+    },
+    "id": "profile_1760910974354_pk7n50xct",
+    "created_at": "2025-10-19T21:56:14.354Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Commerciale",
+      "axis_2": "ff",
+      "axis_3": "Marketing",
+      "axis_4": "ff",
+      "axis_5": "Autre",
+      "axis_6": "46-55 ans",
+      "axis_7": "10-15 ans"
+    },
+    "id": "profile_1760911263493_aonq2d50p",
+    "created_at": "2025-10-19T22:01:03.493Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction RH",
+      "axis_2": "dddd",
+      "axis_3": "Finance",
+      "axis_4": "sss",
+      "axis_5": "Femme",
+      "axis_6": "46-55 ans",
+      "axis_7": "Plus de 15 ans"
+    },
+    "id": "profile_1760911395138_xbz3bmv53",
+    "created_at": "2025-10-19T22:03:15.138Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Générale",
+      "axis_2": "ddd",
+      "axis_3": "Marketing",
+      "axis_4": "dddd",
+      "axis_5": "Femme",
+      "axis_6": "46-55 ans",
+      "axis_7": "10-15 ans"
+    },
+    "id": "profile_1760914927845_hnmnhxkgk",
+    "created_at": "2025-10-19T23:02:07.845Z"
+  },
+  {
+    "session_id": "session_1760966860000_pvpbrqdvl",
+    "axis_responses": {
+      "axis_1": "Direction Générale",
+      "axis_3": "Marketing",
+      "axis_4": "fff",
+      "axis_5": "Homme",
+      "axis_6": "56-65 ans",
+      "axis_7": "10-15 ans"
+    },
+    "id": "profile_1760966924783_cdpufs0lb",
+    "created_at": "2025-10-20T13:28:44.783Z"
+  },
+  {
+    "session_id": "session_1760966860000_pvpbrqdvl",
+    "axis_responses": {
+      "axis_1": "Direction RH",
+      "axis_3": "HR",
+      "axis_4": "ss",
+      "axis_5": "Femme",
+      "axis_6": "36-45 ans",
+      "axis_7": "3-5 ans"
+    },
+    "id": "profile_1760966971711_vpd72pne4",
+    "created_at": "2025-10-20T13:29:31.711Z"
+  },
+  {
+    "session_id": "session_1760966860000_pvpbrqdvl",
+    "axis_responses": {
+      "axis_1": "Direction Générale",
+      "axis_3": "HR",
+      "axis_4": "ff",
+      "axis_5": "Femme",
+      "axis_6": "36-45 ans",
+      "axis_7": "5-10 ans"
+    },
+    "id": "profile_1761053597984_d4vcpuppf",
+    "created_at": "2025-10-21T13:33:17.984Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Technique",
+      "axis_2": "ff",
+      "axis_3": "Marketing",
+      "axis_4": "ff",
+      "axis_5": "Femme",
+      "axis_6": "46-55 ans",
+      "axis_7": "5-10 ans"
+    },
+    "id": "profile_1761066784428_2xd6zo6l4",
+    "created_at": "2025-10-21T17:13:04.428Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Générale",
+      "axis_2": "ff",
+      "axis_3": "IT",
+      "axis_4": "ff",
+      "axis_5": "Homme",
+      "axis_6": "46-55 ans",
+      "axis_7": "5-10 ans"
+    },
+    "id": "profile_1761921316820_4d3kifkki",
+    "created_at": "2025-10-31T14:35:16.820Z"
+  },
+  {
+    "session_id": "session_1760894871879_kp8ra8r4g",
+    "axis_responses": {
+      "axis_1": "Direction Générale",
+      "axis_2": "dd",
+      "axis_3": "Marketing",
+      "axis_4": "dd",
+      "axis_5": "Homme",
+      "axis_6": "46-55 ans",
+      "axis_7": "5-10 ans"
+    },
+    "id": "profile_1762337505254_lijxf4quf",
+    "created_at": "2025-11-05T10:11:45.254Z"
+  },
+  {
+    "session_id": "session_1762365460325_iukrj0aqp",
+    "axis_responses": {
+      "client_axis_1762365040199_b6wqb4wpp": "Direction",
+      "client_axis_1762365422998_eqrar89io": "18-25 ans",
+      "client_axis_1762365425034_0nvbix9jo": "3-5 ans"
+    },
+    "id": "profile_1762365498009_09l9e3fgf",
+    "created_at": "2025-11-05T17:58:18.009Z"
+  },
+  {
+    "session_id": "session_1762365460325_iukrj0aqp",
+    "axis_responses": {
+      "client_axis_1762365040199_b6wqb4wpp": "Finances",
+      "client_axis_1762365422998_eqrar89io": "46-55 ans",
+      "client_axis_1762365425034_0nvbix9jo": "10-15 ans"
+    },
+    "id": "profile_1762365580349_z811j62to",
+    "created_at": "2025-11-05T17:59:40.349Z"
+  },
+  {
+    "session_id": "session_1762438696528_fnndx7ftq",
+    "axis_responses": {
+      "client_axis_1762365040199_b6wqb4wpp": "Direction",
+      "client_axis_1762365422998_eqrar89io": "46-55 ans",
+      "client_axis_1762365425034_0nvbix9jo": "5-10 ans"
+    },
+    "id": "profile_1762438779790_44doi2y4y",
+    "created_at": "2025-11-06T14:19:39.790Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "axis_responses": {
+      "client_axis_1762365040199_b6wqb4wpp": "Direction",
+      "client_axis_1762365422998_eqrar89io": "26-35 ans",
+      "client_axis_1762365425034_0nvbix9jo": "5-10 ans"
+    },
+    "id": "profile_1763912423390_5mc6lw8ei",
+    "created_at": "2025-11-23T15:40:23.390Z"
+  }
+]

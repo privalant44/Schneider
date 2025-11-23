@@ -1,0 +1,85 @@
+[
+  {
+    "id": "axis_1",
+    "name": "Direction",
+    "type": "select",
+    "options": [
+      "Direction Générale",
+      "Direction Commerciale",
+      "Direction Technique",
+      "Direction RH",
+      "Direction Financière"
+    ],
+    "required": false,
+    "order": 1,
+    "category": "organizational",
+    "created_at": "2025-10-18T21:09:24.165Z"
+  },
+  {
+    "id": "axis_3",
+    "name": "Domaine",
+    "type": "select",
+    "options": [
+      "IT",
+      "Marketing",
+      "Sales",
+      "HR",
+      "Finance",
+      "Operations",
+      "R&D"
+    ],
+    "required": false,
+    "order": 3,
+    "category": "organizational",
+    "created_at": "2025-10-18T21:09:24.165Z"
+  },
+  {
+    "id": "axis_5",
+    "name": "Sexe",
+    "type": "select",
+    "options": [
+      "Homme",
+      "Femme",
+      "Autre",
+      "Préfère ne pas dire"
+    ],
+    "required": false,
+    "order": 5,
+    "category": "demographic",
+    "created_at": "2025-10-18T21:09:24.165Z"
+  },
+  {
+    "id": "axis_6",
+    "name": "Tranche d'âge",
+    "type": "select",
+    "options": [
+      "18-25 ans",
+      "26-35 ans",
+      "36-45 ans",
+      "46-55 ans",
+      "56-65 ans",
+      "65+ ans"
+    ],
+    "required": false,
+    "order": 6,
+    "category": "demographic",
+    "created_at": "2025-10-18T21:09:24.165Z"
+  },
+  {
+    "id": "axis_7",
+    "name": "Ancienneté",
+    "type": "select",
+    "options": [
+      "Moins de 1 an",
+      "1-3 ans",
+      "3-5 ans",
+      "5-10 ans",
+      "10-15 ans",
+      "Plus de 15 ans"
+    ],
+    "required": false,
+    "order": 7,
+    "category": "demographic",
+    "created_at": "2025-10-18T21:09:24.165Z"
+  }
+]
