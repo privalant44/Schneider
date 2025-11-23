@@ -322,23 +322,29 @@ export default function SessionsPage() {
                     
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex items-center gap-2">
-                        <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                          {session.short_url}
-                        </code>
-                        <button
-                          onClick={() => copyShortUrl(session.short_url)}
-                          className="text-blue-600 hover:text-blue-800"
-                          title="Copier l'URL"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => showQRCodeModal(session.short_url)}
-                          className="text-green-600 hover:text-green-800"
-                          title="Afficher le QR Code"
-                        >
-                          <QrCode className="w-4 h-4" />
-                        </button>
+                        {session.short_url ? (
+                          <>
+                            <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+                              {session.short_url}
+                            </code>
+                            <button
+                              onClick={() => session.short_url && copyShortUrl(session.short_url)}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Copier l'URL"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => session.short_url && showQRCodeModal(session.short_url)}
+                              className="text-green-600 hover:text-green-800"
+                              title="Afficher le QR Code"
+                            >
+                              <QrCode className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Aucune URL</span>
+                        )}
                       </div>
                     </td>
                     

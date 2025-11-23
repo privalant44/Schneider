@@ -12,8 +12,8 @@ export async function GET(request: Request) {
       );
     }
 
-    const { getClientAnalysisAxes } = await import('@/lib/json-database');
-    const clientAxes = getClientAnalysisAxes(clientId);
+    const { getClientSpecificAxes } = await import('@/lib/json-database');
+    const clientAxes = getClientSpecificAxes(clientId);
     
     return NextResponse.json(clientAxes);
   } catch (error) {

@@ -153,7 +153,7 @@ export default function SessionAnalysisPage() {
           </h2>
           
           <div className="flex justify-center">
-            <RadarChart data={results.culture_distribution} />
+            <RadarChart results={results.culture_distribution} />
           </div>
         </div>
 

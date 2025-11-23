@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     }
     
     // Vérifier si la session existe déjà (ancien système)
-    let session = getSession(sessionId);
+    let session: { id: string; completed: boolean; created_at: string } | null = getSession(sessionId);
     if (!session) {
       // Créer la session avec l'ID fourni (ancien système)
       session = createSessionWithId(sessionId);
@@ -85,8 +85,7 @@ export async function GET(request: Request) {
       const responses = getResponses(sessionId);
       return NextResponse.json(responses);
     } else {
-      // Pour l'instant, retourner un tableau vide
-      // En production, vous pourriez vouloir implémenter une fonction pour récupérer toutes les sessions
+      // Retourner un tableau vide par défaut
       return NextResponse.json([]);
     }
   } catch (error) {

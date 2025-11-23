@@ -156,7 +156,7 @@ export default function ClientsPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-800">{client.name}</h3>
-                    <p className="text-sm text-gray-600">{client.industry}</p>
+                    {client.industry && <p className="text-sm text-gray-600">{client.industry}</p>}
                   </div>
                 </div>
 

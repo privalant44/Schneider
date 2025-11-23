@@ -1,5 +1,4 @@
-// Simulation de base de données en mémoire pour le développement
-// En production, vous pourriez utiliser une vraie base de données
+// Simulation de base de données en mémoire
 
 import { 
   Client, 
@@ -7,7 +6,6 @@ import {
   RespondentProfile, 
   SessionResponse, 
   SessionResults, 
-  RespondentParameter,
   SessionComparison 
 } from './types';
 
@@ -51,7 +49,6 @@ let questionnaireSessions: QuestionnaireSession[] = [];
 let respondentProfiles: RespondentProfile[] = [];
 let sessionResponses: SessionResponse[] = [];
 let sessionResults: SessionResults[] = [];
-let respondentParameters: RespondentParameter[] = [];
 let nextId = 1;
 
 // Initialiser les données par défaut
@@ -465,39 +462,8 @@ export function getAllSessionResults(): SessionResults[] {
 }
 
 // ===== FONCTIONS POUR LA GESTION DES PARAMÈTRES DE RÉPONDANTS =====
-
-export function getRespondentParameters(): RespondentParameter[] {
-  return respondentParameters.sort((a, b) => a.order - b.order);
-}
-
-export function createRespondentParameter(parameterData: Omit<RespondentParameter, 'id' | 'created_at'>): RespondentParameter {
-  const now = new Date().toISOString();
-  const newParameter: RespondentParameter = {
-    ...parameterData,
-    id: `param_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    created_at: now
-  };
-  respondentParameters.push(newParameter);
-  return newParameter;
-}
-
-export function updateRespondentParameter(id: string, parameterData: Partial<Omit<RespondentParameter, 'id' | 'created_at'>>): RespondentParameter | null {
-  const index = respondentParameters.findIndex(p => p.id === id);
-  if (index !== -1) {
-    respondentParameters[index] = { ...respondentParameters[index], ...parameterData };
-    return respondentParameters[index];
-  }
-  return null;
-}
-
-export function deleteRespondentParameter(id: string): boolean {
-  const index = respondentParameters.findIndex(p => p.id === id);
-  if (index !== -1) {
-    respondentParameters.splice(index, 1);
-    return true;
-  }
-  return false;
-}
+// Note: Ces fonctions ont été supprimées car elles ne sont plus utilisées
+// Les paramètres de répondants sont maintenant gérés via AnalysisAxis et RespondentProfile
 
 // ===== FONCTIONS POUR LES COMPARAISONS ENTRE SESSIONS =====
 
@@ -549,7 +515,6 @@ export function getDatabaseStatus() {
     respondentProfiles: respondentProfiles.length,
     sessionResponses: sessionResponses.length,
     sessionResults: sessionResults.length,
-    respondentParameters: respondentParameters.length,
     nextId: nextId
   };
 }
@@ -569,7 +534,7 @@ export function getShortUrlDiagnostics() {
       name: s.name,
       isActive: s.is_active
     })),
-    sessionsWithoutShortUrls: sessionsWithoutShortUrls.map(s => ({
+    sessionsWithoutShortUrlsList: sessionsWithoutShortUrls.map(s => ({
       id: s.id,
       name: s.name,
       isActive: s.is_active

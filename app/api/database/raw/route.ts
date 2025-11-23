@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         data = db.getRespondentProfiles();
         break;
       case 'session-responses':
-        data = db.getSessionResponses();
+        data = db.getAllSessionResponses();
         break;
       case 'session-results':
         data = db.getAllSessionResults();
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         data = db.getAnalysisAxes();
         break;
       case 'client-specific-axes':
-        data = db.getClientSpecificAxes();
+        data = db.getAllClientSpecificAxes();
         break;
       case 'settings':
         data = db.getSettings();

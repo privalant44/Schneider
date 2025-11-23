@@ -373,7 +373,7 @@ export default function AnalyticsPage() {
                     <div className="mb-6">
                       <h4 className="font-medium text-gray-700 mb-3">Distribution des cultures</h4>
                       <div className="flex justify-center">
-                        <RadarChart data={result.culture_distribution} />
+                        <RadarChart results={result.culture_distribution} />
                       </div>
                     </div>
 
@@ -397,9 +397,10 @@ export default function AnalyticsPage() {
                     </div>
 
                     {/* Répartition par paramètres de répondants */}
-                    {Object.keys(result.respondent_breakdown).some(key => 
-                      Object.keys(result.respondent_breakdown[key as keyof typeof result.respondent_breakdown]).length > 0
-                    ) && (
+                    {Object.keys(result.respondent_breakdown).some(key => {
+                      const breakdown = result.respondent_breakdown[key as keyof typeof result.respondent_breakdown];
+                      return breakdown && typeof breakdown === 'object' && Object.keys(breakdown).length > 0;
+                    }) && (
                       <div className="mt-6">
                         <h4 className="font-medium text-gray-700 mb-3">Répartition des répondants</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

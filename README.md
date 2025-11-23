@@ -10,21 +10,18 @@ Une application Next.js moderne pour la gestion et l'analyse de questionnaires d
 - **Interface d'administration** : Panel complet pour la gestion des données
 - **API REST** : Endpoints complets pour toutes les opérations
 - **Sécurité** : Validation des données et gestion d'erreurs robuste
-- **Déploiement** : Configuration Docker et Nginx prête pour la production
 
 ## 🛠️ Technologies
 
 - **Frontend** : Next.js 14, React 18, TypeScript, Tailwind CSS
 - **Backend** : API Routes Next.js, JSON Database
 - **Visualisation** : SVG Radar Chart personnalisé
-- **Déploiement** : Docker, Docker Compose, Nginx
 - **Outils** : ESLint, TypeScript, Lucide React
 
 ## 📋 Prérequis
 
 - Node.js 18+ 
 - npm ou yarn
-- Docker (optionnel, pour le déploiement)
 
 ## 🚀 Installation et Démarrage
 
@@ -44,37 +41,16 @@ npm run dev
 
 L'application sera accessible sur [http://localhost:3000](http://localhost:3000)
 
-### Déploiement avec Docker
-
-```bash
-# Build et démarrage avec Docker Compose
-npm run docker:compose:build
-
-# Ou build manuel
-npm run docker:build
-npm run docker:run
-```
-
 ### Scripts Disponibles
 
 ```bash
 # Développement
 npm run dev              # Serveur de développement
-npm run build            # Build de production
-npm run start            # Serveur de production
+npm run build            # Build de l'application
+npm run start            # Serveur de build local
 npm run lint             # Vérification ESLint
 npm run lint:fix         # Correction automatique ESLint
 npm run type-check       # Vérification TypeScript
-
-# Docker
-npm run docker:build     # Build de l'image Docker
-npm run docker:run       # Exécution du conteneur
-npm run docker:compose   # Démarrage avec Docker Compose
-npm run docker:compose:down  # Arrêt des conteneurs
-
-# Déploiement
-npm run deploy:build     # Build complet pour déploiement
-npm run deploy:docker    # Build et Docker pour déploiement
 npm run health           # Vérification de santé de l'application
 
 # Maintenance
@@ -98,9 +74,6 @@ npm run clean:all        # Nettoyage complet et réinstallation
 │   └── types.ts           # Types TypeScript
 ├── data/                  # Base de données JSON
 ├── public/                # Assets statiques
-├── Dockerfile             # Configuration Docker
-├── docker-compose.yml     # Orchestration Docker
-├── nginx.conf             # Configuration Nginx
 └── next.config.js         # Configuration Next.js
 ```
 
@@ -111,18 +84,10 @@ npm run clean:all        # Nettoyage complet et réinstallation
 Créez un fichier `.env.local` :
 
 ```env
-NODE_ENV=production
+NODE_ENV=development
 PORT=3000
 NEXT_TELEMETRY_DISABLED=1
 ```
-
-### Configuration Docker
-
-Le fichier `docker-compose.yml` configure :
-- Application Next.js sur le port 3000
-- Nginx en reverse proxy sur les ports 80/443
-- Volumes persistants pour les données
-- Health checks automatiques
 
 ## 📊 API Endpoints
 
@@ -161,30 +126,9 @@ L'endpoint `/api/health` fournit :
 - Santé du système de fichiers
 - Temps de fonctionnement
 
-## 🚀 Déploiement en Production
-
-### Avec Docker Compose
-
-```bash
-# Déploiement complet
-npm run docker:compose:build
-
-# Vérification
-npm run health
-```
-
-### Configuration Nginx
-
-Le fichier `nginx.conf` inclut :
-- SSL/TLS avec redirection HTTP vers HTTPS
-- Compression gzip
-- Cache pour les assets statiques
-- Headers de sécurité
-- Load balancing
-
 ### Sauvegarde des Données
 
-Les données sont stockées dans le volume Docker `./data`. Pour sauvegarder :
+Les données sont stockées dans le dossier `./data`. Pour sauvegarder :
 
 ```bash
 # Sauvegarde

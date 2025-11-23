@@ -478,6 +478,10 @@ export function getSessionResponses(sessionId: string): SessionResponse[] {
   return sessionResponses.filter(r => r.session_id === sessionId);
 }
 
+export function getAllSessionResponses(): SessionResponse[] {
+  return sessionResponses;
+}
+
 export function getSessionResponsesByProfile(profileId: string): SessionResponse[] {
   return sessionResponses.filter(r => r.respondent_profile_id === profileId);
 }
@@ -837,6 +841,10 @@ export function getClientSpecificAxes(clientId: string): ClientSpecificAxis[] {
   return clientSpecificAxes
     .filter(ca => ca.client_id === clientId)
     .sort((a, b) => a.order - b.order);
+}
+
+export function getAllClientSpecificAxes(): ClientSpecificAxis[] {
+  return clientSpecificAxes;
 }
 
 export function getClientSpecificAxis(id: string): ClientSpecificAxis | null {
