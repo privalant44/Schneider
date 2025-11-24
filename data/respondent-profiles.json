@@ -231,5 +231,35 @@
     },
     "id": "profile_1763912423390_5mc6lw8ei",
     "created_at": "2025-11-23T15:40:23.390Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "axis_responses": {
+      "client_axis_1762365040199_b6wqb4wpp": "IT",
+      "client_axis_1762365422998_eqrar89io": "46-55 ans",
+      "client_axis_1762365425034_0nvbix9jo": "Plus de 15 ans"
+    },
+    "id": "profile_1764005016160_jbrsop7yz",
+    "created_at": "2025-11-24T17:23:36.160Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "axis_responses": {
+      "client_axis_1762365040199_b6wqb4wpp": "Finances",
+      "client_axis_1762365422998_eqrar89io": "56-65 ans",
+      "client_axis_1762365425034_0nvbix9jo": "10-15 ans"
+    },
+    "id": "profile_1764005046719_udgkgdmwm",
+    "created_at": "2025-11-24T17:24:06.719Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "axis_responses": {
+      "client_axis_1762365040199_b6wqb4wpp": "R&D",
+      "client_axis_1762365422998_eqrar89io": "56-65 ans",
+      "client_axis_1762365425034_0nvbix9jo": "Plus de 15 ans"
+    },
+    "id": "profile_1764005078047_0ucsv4ack",
+    "created_at": "2025-11-24T17:24:38.047Z"
   }
 ]

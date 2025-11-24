@@ -1210,3 +1210,13 @@ loadAllData();
 initDefaultData();
 migrateSessionsWithFrozenAxes(); // Migration des axes figés
 saveAllData();
+
+// Initialiser le super-admin (chargé dynamiquement pour éviter les imports circulaires)
+setTimeout(async () => {
+  try {
+    const { initializeSuperAdmin } = await import('./users');
+    await initializeSuperAdmin();
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation du super-admin:', error);
+  }
+}, 0);

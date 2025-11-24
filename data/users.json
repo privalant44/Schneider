@@ -1,0 +1,11 @@
+[
+  {
+    "id": "user_1763996150888_3ib0oz0q1",
+    "email": "philippe.rivalant@animaneo.fr",
+    "passwordHash": "$2a$10$5gnF0fOGgcI8Xk7Mth0Xyunes7dV1xlhUheSX.gelXXardJobFoQ6",
+    "role": "super-admin",
+    "created_at": "2025-11-24T14:55:50.888Z",
+    "updated_at": "2025-11-24T14:55:50.888Z",
+    "last_login": "2025-11-24T17:28:26.990Z"
+  }
+]

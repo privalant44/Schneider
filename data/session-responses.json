@@ -718,5 +718,53 @@
     "answer": "C",
     "id": 1763912390713,
     "created_at": "2025-11-23T15:40:23.407Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "respondent_profile_id": "profile_1764005016160_jbrsop7yz",
+    "question_id": 6,
+    "answer": "C",
+    "id": 1763912423391,
+    "created_at": "2025-11-24T17:23:36.170Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "respondent_profile_id": "profile_1764005016160_jbrsop7yz",
+    "question_id": 7,
+    "answer": "A",
+    "id": 1763912423392,
+    "created_at": "2025-11-24T17:23:36.182Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "respondent_profile_id": "profile_1764005046719_udgkgdmwm",
+    "question_id": 6,
+    "answer": "C",
+    "id": 1764005016161,
+    "created_at": "2025-11-24T17:24:06.731Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "respondent_profile_id": "profile_1764005046719_udgkgdmwm",
+    "question_id": 7,
+    "answer": "A",
+    "id": 1764005016162,
+    "created_at": "2025-11-24T17:24:06.741Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "respondent_profile_id": "profile_1764005078047_0ucsv4ack",
+    "question_id": 6,
+    "answer": "C",
+    "id": 1764005016163,
+    "created_at": "2025-11-24T17:24:38.057Z"
+  },
+  {
+    "session_id": "session_1763912390708_w2aurc527",
+    "respondent_profile_id": "profile_1764005078047_0ucsv4ack",
+    "question_id": 7,
+    "answer": "B",
+    "id": 1764005016164,
+    "created_at": "2025-11-24T17:24:38.068Z"
   }
 ]

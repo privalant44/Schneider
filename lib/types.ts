@@ -207,3 +207,23 @@ export interface SessionComparison {
     response_rate_change: number;
   };
 }
+
+// Types pour l'authentification
+export interface AdminUser {
+  id: string;
+  email: string;
+  passwordHash: string;
+  role: 'super-admin' | 'admin';
+  created_at: string;
+  updated_at: string;
+  last_login?: string;
+}
+
+export interface PasswordResetToken {
+  id: string;
+  user_id: string;
+  token: string;
+  expires_at: string;
+  used: boolean;
+  created_at: string;
+}
