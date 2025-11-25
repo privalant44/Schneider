@@ -12,6 +12,8 @@ export default function QuestionsPage() {
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchQuestions();
@@ -30,6 +32,9 @@ export default function QuestionsPage() {
   };
 
   const handleSaveQuestion = async (questionData: Partial<Question>) => {
+    setSaving(true);
+    setError(null);
+    
     try {
       const url = '/api/questions';
       const method = editingQuestion ? 'PUT' : 'POST';
@@ -44,12 +49,21 @@ export default function QuestionsPage() {
       });
 
       if (response.ok) {
-        fetchQuestions();
+        await fetchQuestions();
         setShowQuestionForm(false);
         setEditingQuestion(null);
+        setError(null);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Erreur inconnue' }));
+        setError(errorData.error || `Erreur ${response.status}: ${response.statusText}`);
+        console.error('Erreur lors de la sauvegarde:', errorData);
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la sauvegarde';
+      setError(errorMessage);
       console.error('Erreur lors de la sauvegarde:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -127,10 +141,16 @@ export default function QuestionsPage() {
               </button>
             </div>
 
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-800 text-sm">{error}</p>
+              </div>
+            )}
             <QuestionForm
               question={editingQuestion}
               onSave={handleSaveQuestion}
               onCancel={handleCancelEdit}
+              saving={saving}
             />
           </div>
         )}
@@ -255,11 +275,13 @@ export default function QuestionsPage() {
 function QuestionForm({ 
   question, 
   onSave, 
-  onCancel 
+  onCancel,
+  saving = false
 }: { 
   question: Question | null; 
   onSave: (data: Partial<Question>) => void; 
-  onCancel: () => void; 
+  onCancel: () => void;
+  saving?: boolean;
 }) {
   const [formData, setFormData] = useState({
     question_text: question?.question_text || '',
@@ -403,10 +425,11 @@ function QuestionForm({
         </button>
         <button
           type="submit"
-          className="flex items-center gap-2 px-4 py-2 bg-anima-blue text-white rounded-lg hover:bg-anima-dark-blue transition-colors"
+          disabled={saving}
+          className="flex items-center gap-2 px-4 py-2 bg-anima-blue text-white rounded-lg hover:bg-anima-dark-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-4 h-4" />
-          {question ? 'Modifier' : 'Créer'}
+          {saving ? 'Enregistrement...' : (question ? 'Modifier' : 'Créer')}
         </button>
       </div>
     </form>

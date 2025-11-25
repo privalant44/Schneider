@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { kv } from '@vercel/kv';
+import Redis from 'ioredis';
 import { 
   Client, 
   QuestionnaireSession, 
@@ -101,6 +102,85 @@ function isKvAvailable(): boolean {
     return true;
   }
   return false;
+}
+
+// Client Redis pour REDIS_URL (format standard)
+let redisClient: Redis | null = null;
+
+function getRedisClient(): Redis | null {
+  if (process.env.REDIS_URL && !redisClient) {
+    try {
+      redisClient = new Redis(process.env.REDIS_URL, {
+        maxRetriesPerRequest: 3,
+        retryStrategy: (times) => {
+          const delay = Math.min(times * 50, 2000);
+          return delay;
+        },
+      });
+    } catch (error) {
+      console.error('Erreur lors de la création du client Redis:', error);
+      return null;
+    }
+  }
+  return redisClient;
+}
+
+// Wrapper pour les opérations KV qui supporte les deux formats
+async function kvGet<T>(key: string): Promise<T | null> {
+  // Format 1: REDIS_URL (format standard Redis avec ioredis)
+  if (process.env.REDIS_URL) {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        const value = await client.get(key);
+        return value ? JSON.parse(value) : null;
+      } catch (error) {
+        console.error(`Erreur lors de la lecture de ${key} depuis Redis:`, error);
+        return null;
+      }
+    }
+  }
+  
+  // Format 2: KV_REST_API_URL + KV_REST_API_TOKEN (format REST API Vercel KV)
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    try {
+      return await kv.get<T>(key);
+    } catch (error) {
+      console.error(`Erreur lors de la lecture de ${key} depuis Vercel KV:`, error);
+      return null;
+    }
+  }
+  
+  return null;
+}
+
+async function kvSet(key: string, value: any): Promise<void> {
+  // Format 1: REDIS_URL (format standard Redis avec ioredis)
+  if (process.env.REDIS_URL) {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        await client.set(key, JSON.stringify(value));
+        return;
+      } catch (error) {
+        console.error(`Erreur lors de l'écriture de ${key} dans Redis:`, error);
+        throw error;
+      }
+    }
+  }
+  
+  // Format 2: KV_REST_API_URL + KV_REST_API_TOKEN (format REST API Vercel KV)
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    try {
+      await kv.set(key, value);
+      return;
+    } catch (error) {
+      console.error(`Erreur lors de l'écriture de ${key} dans Vercel KV:`, error);
+      throw error;
+    }
+  }
+  
+  throw new Error('Aucun client Redis configuré');
 }
 
 // Fonction pour s'assurer que le dossier data existe
@@ -742,10 +822,10 @@ export function compareSessions(session1Id: string, session2Id: string): Session
 async function readQuestions(): Promise<Question[]> {
   if (isKvAvailable()) {
     try {
-      const questionsData = await kv.get<Question[]>(QUESTIONS_KEY);
+      const questionsData = await kvGet<Question[]>(QUESTIONS_KEY);
       return questionsData || [];
     } catch (error) {
-      console.error('Erreur lors de la lecture des questions depuis KV:', error);
+      console.error('Erreur lors de la lecture des questions depuis KV/Redis:', error);
       return [];
     }
   }
@@ -769,10 +849,10 @@ async function readQuestions(): Promise<Question[]> {
 async function writeQuestions(questionsData: Question[]): Promise<void> {
   if (isKvAvailable()) {
     try {
-      await kv.set(QUESTIONS_KEY, questionsData);
+      await kvSet(QUESTIONS_KEY, questionsData);
       return;
     } catch (error) {
-      console.error('Erreur lors de l\'écriture des questions dans KV:', error);
+      console.error('Erreur lors de l\'écriture des questions dans KV/Redis:', error);
       throw error;
     }
   }
@@ -793,9 +873,9 @@ async function writeQuestions(questionsData: Question[]): Promise<void> {
 async function getNextQuestionId(): Promise<number> {
   if (isKvAvailable()) {
     try {
-      const currentId = await kv.get<number>(NEXT_QUESTION_ID_KEY);
+      const currentId = await kvGet<number>(NEXT_QUESTION_ID_KEY);
       const nextId = (currentId || 0) + 1;
-      await kv.set(NEXT_QUESTION_ID_KEY, nextId);
+      await kvSet(NEXT_QUESTION_ID_KEY, nextId);
       return nextId;
     } catch (error) {
       console.error('Erreur lors de la récupération du prochain ID depuis KV:', error);
