@@ -34,7 +34,7 @@ function ensureDataDir() {
 /**
  * Lit les utilisateurs depuis KV ou fichiers JSON (fallback)
  */
-async function readUsers(): Promise<AdminUser[]> {
+export async function readUsers(): Promise<AdminUser[]> {
   if (isKvAvailable()) {
     try {
       const users = await kv.get<AdminUser[]>(USERS_KEY);
