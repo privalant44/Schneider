@@ -45,7 +45,8 @@ export async function POST(request: Request) {
     }
     
     const { addClientAnalysisAxis } = await import('@/lib/json-database');
-    const newAxis = addClientAnalysisAxis({
+    const { ClientSpecificAxis } = await import('@/lib/types');
+    const newAxis: ClientSpecificAxis = await addClientAnalysisAxis({
       name,
       type,
       options,
