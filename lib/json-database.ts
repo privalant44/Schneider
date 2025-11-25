@@ -1135,10 +1135,28 @@ export async function createQuestionnaireSession(sessionData: Omit<Questionnaire
   };
   questionnaireSessions.push(newSession);
   
-  // Sauvegarder dans KV/Redis si disponible
-  if (isKvAvailable()) {
-    await writeQuestionnaireSessions(questionnaireSessions);
+  // Sauvegarder dans KV/Redis si disponible (TOUJOURS sur Vercel)
+  try {
+    if (isKvAvailable()) {
+      await writeQuestionnaireSessions(questionnaireSessions);
+      console.log(`Session créée et sauvegardée dans Redis: ${newSession.id}`);
+    } else if (isVercel()) {
+      // Sur Vercel, on DOIT avoir Redis/KV
+      throw new Error('Vercel KV non configuré. Impossible de sauvegarder la session.');
+    } else {
+      // En local, sauvegarder dans le fichier
+      await writeQuestionnaireSessions(questionnaireSessions);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de la session:', error);
+    // Retirer la session de la liste en mémoire si la sauvegarde a échoué
+    const index = questionnaireSessions.findIndex(s => s.id === newSession.id);
+    if (index !== -1) {
+      questionnaireSessions.splice(index, 1);
+    }
+    throw error;
   }
+  
   saveAllData();
   return newSession;
 }
