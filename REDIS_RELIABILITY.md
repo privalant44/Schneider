@@ -197,3 +197,4 @@ En cas de problème :
 3. Consulter les logs Vercel pour les erreurs détaillées
 4. Utiliser `/api/database/check-sessions` pour diagnostiquer les sessions
 
+

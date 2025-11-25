@@ -13,6 +13,8 @@ const RETRY_DELAY = 100; // ms
 // Client Redis pour REDIS_URL (format standard)
 let redisClient: Redis | null = null;
 let redisClientError: Error | null = null;
+let lastErrorTime: number = 0;
+const ERROR_COOLDOWN = 5000; // 5 secondes avant de réessayer après une erreur
 
 /**
  * Obtient ou crée le client Redis
@@ -23,9 +25,16 @@ function getRedisClient(): Redis | null {
       return redisClient;
     }
     
+    // Réessayer après un délai si on a eu une erreur récente
     if (redisClientError) {
-      // Ne pas réessayer si on a déjà eu une erreur récente
-      return null;
+      const timeSinceError = Date.now() - lastErrorTime;
+      if (timeSinceError < ERROR_COOLDOWN) {
+        // Ne pas réessayer si on a eu une erreur récente
+        return null;
+      }
+      // Réinitialiser l'erreur pour permettre une nouvelle tentative
+      console.log('🔄 Nouvelle tentative de connexion Redis après erreur');
+      redisClientError = null;
     }
     
     try {
@@ -53,6 +62,7 @@ function getRedisClient(): Redis | null {
       redisClient.on('error', (err) => {
         console.error('❌ Erreur Redis:', err.message);
         redisClientError = err;
+        lastErrorTime = Date.now();
       });
       
       redisClient.on('connect', () => {
@@ -69,6 +79,7 @@ function getRedisClient(): Redis | null {
     } catch (error: any) {
       console.error('❌ Erreur lors de la création du client Redis:', error.message);
       redisClientError = error;
+      lastErrorTime = Date.now();
       return null;
     }
   }
@@ -77,11 +88,15 @@ function getRedisClient(): Redis | null {
 
 /**
  * Vérifie si Redis/KV est disponible
+ * IMPORTANT: Vérifie la configuration, pas l'état de connexion
+ * (car en serverless, chaque invocation peut avoir un état différent)
  */
 export function isKvAvailable(): boolean {
+  // Si REDIS_URL est configuré, Redis est disponible (même si le client a eu une erreur temporaire)
   if (process.env.REDIS_URL) {
-    return getRedisClient() !== null;
+    return true;
   }
+  // Si KV_REST_API_URL et KV_REST_API_TOKEN sont configurés, Vercel KV est disponible
   if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
     return true;
   }
@@ -230,4 +245,5 @@ export async function checkRedisHealth(): Promise<{ healthy: boolean; error?: st
     return { healthy: false, error: error.message };
   }
 }
+
 

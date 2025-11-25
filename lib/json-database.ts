@@ -269,49 +269,90 @@ async function loadAllData() {
 }
 
 // Fonction pour sauvegarder toutes les données
-function saveAllData() {
-  writeJsonFile(CLIENTS_FILE, clients);
-  writeJsonFile(SESSIONS_FILE, questionnaireSessions);
-  writeJsonFile(RESPONDENT_PROFILES_FILE, respondentProfiles);
-  writeJsonFile(SESSION_RESPONSES_FILE, sessionResponses);
-  writeJsonFile(SESSION_RESULTS_FILE, sessionResults);
-  writeJsonFile(ANALYSIS_AXES_FILE, analysisAxes);
-  // Les axes par client sont sauvegardés dans KV/Redis, pas dans les fichiers
-  writeJsonFile(CLIENT_ANALYSIS_AXES_FILE, clientAnalysisAxes); // Fallback local
-  writeJsonFile(CLIENT_SPECIFIC_AXES_FILE, clientSpecificAxes); // Fallback local
-  writeJsonFile(QUESTIONS_FILE, questions);
-  writeJsonFile(SETTINGS_FILE, settings);
-  writeJsonFile(DOMAIN_ANALYSIS_FILE, domainAnalysis);
+// NOTE: Cette fonction est maintenant async pour garantir la sauvegarde dans Redis
+// En production (Vercel), les fichiers JSON ne sont pas persistants, donc on se concentre sur Redis
+async function saveAllData() {
+  // Sauvegarder dans les fichiers JSON uniquement en développement local
+  if (!isVercel()) {
+    writeJsonFile(CLIENTS_FILE, clients);
+    writeJsonFile(SESSIONS_FILE, questionnaireSessions);
+    writeJsonFile(RESPONDENT_PROFILES_FILE, respondentProfiles);
+    writeJsonFile(SESSION_RESPONSES_FILE, sessionResponses);
+    writeJsonFile(SESSION_RESULTS_FILE, sessionResults);
+    writeJsonFile(ANALYSIS_AXES_FILE, analysisAxes);
+    writeJsonFile(CLIENT_ANALYSIS_AXES_FILE, clientAnalysisAxes);
+    writeJsonFile(CLIENT_SPECIFIC_AXES_FILE, clientSpecificAxes);
+    writeJsonFile(QUESTIONS_FILE, questions);
+    writeJsonFile(SETTINGS_FILE, settings);
+    writeJsonFile(DOMAIN_ANALYSIS_FILE, domainAnalysis);
+  }
   
   // Sauvegarder toutes les données dans KV/Redis si disponible
+  // En production, c'est la source de vérité unique
   if (isKvAvailable()) {
-    writeClients(clients).catch(err => {
-      console.error('Erreur lors de la sauvegarde des clients dans KV:', err);
-    });
-    writeQuestionnaireSessions(questionnaireSessions).catch(err => {
-      console.error('Erreur lors de la sauvegarde des sessions de questionnaire dans KV:', err);
-    });
-    writeRespondentProfiles(respondentProfiles).catch(err => {
-      console.error('Erreur lors de la sauvegarde des profils de répondants dans KV:', err);
-    });
-    writeSessionResponses(sessionResponses).catch(err => {
-      console.error('Erreur lors de la sauvegarde des réponses de session dans KV:', err);
-    });
-    writeSessionResults(sessionResults).catch(err => {
-      console.error('Erreur lors de la sauvegarde des résultats de session dans KV:', err);
-    });
-    writeAnalysisAxes(analysisAxes).catch(err => {
-      console.error('Erreur lors de la sauvegarde des axes d\'analyse dans KV:', err);
-    });
-    writeSettings(settings).catch(err => {
-      console.error('Erreur lors de la sauvegarde des paramètres dans KV:', err);
-    });
-    writeClientAnalysisAxes(clientAnalysisAxes).catch(err => {
-      console.error('Erreur lors de la sauvegarde des axes d\'analyse par client dans KV:', err);
-    });
-    writeClientSpecificAxes(clientSpecificAxes).catch(err => {
-      console.error('Erreur lors de la sauvegarde des axes spécifiques par client dans KV:', err);
-    });
+    const errors: string[] = [];
+    
+    // Sauvegarder toutes les données en parallèle pour plus de performance
+    await Promise.allSettled([
+      writeClients(clients).catch(err => {
+        const errorMsg = `Erreur lors de la sauvegarde des clients dans KV: ${err instanceof Error ? err.message : String(err)}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+      }),
+      writeQuestionnaireSessions(questionnaireSessions).catch(err => {
+        const errorMsg = `Erreur lors de la sauvegarde des sessions dans KV: ${err instanceof Error ? err.message : String(err)}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+      }),
+      writeRespondentProfiles(respondentProfiles).catch(err => {
+        const errorMsg = `Erreur lors de la sauvegarde des profils dans KV: ${err instanceof Error ? err.message : String(err)}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+      }),
+      writeSessionResponses(sessionResponses).catch(err => {
+        const errorMsg = `Erreur lors de la sauvegarde des réponses dans KV: ${err instanceof Error ? err.message : String(err)}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+      }),
+      writeSessionResults(sessionResults).catch(err => {
+        const errorMsg = `Erreur lors de la sauvegarde des résultats dans KV: ${err instanceof Error ? err.message : String(err)}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+      }),
+      writeAnalysisAxes(analysisAxes).catch(err => {
+        const errorMsg = `Erreur lors de la sauvegarde des axes dans KV: ${err instanceof Error ? err.message : String(err)}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+      }),
+      writeSettings(settings).catch(err => {
+        const errorMsg = `Erreur lors de la sauvegarde des paramètres dans KV: ${err instanceof Error ? err.message : String(err)}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+      }),
+      writeClientAnalysisAxes(clientAnalysisAxes).catch(err => {
+        const errorMsg = `Erreur lors de la sauvegarde des axes par client dans KV: ${err instanceof Error ? err.message : String(err)}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+      }),
+      writeClientSpecificAxes(clientSpecificAxes).catch(err => {
+        const errorMsg = `Erreur lors de la sauvegarde des axes spécifiques dans KV: ${err instanceof Error ? err.message : String(err)}`;
+        console.error('❌', errorMsg);
+        errors.push(errorMsg);
+      }),
+    ]);
+    
+    if (errors.length > 0) {
+      console.error(`⚠️ ${errors.length} erreur(s) lors de la sauvegarde dans Redis`);
+      // En production, on veut être informé mais ne pas bloquer l'application
+      if (isVercel()) {
+        console.error('⚠️ CRITIQUE: Certaines données n\'ont pas pu être sauvegardées dans Redis en production');
+      }
+    } else {
+      console.log('✅ Toutes les données sauvegardées dans Redis');
+    }
+  } else if (isVercel()) {
+    // En production sans Redis, c'est un problème critique
+    console.error('❌ CRITIQUE: Redis non disponible en production. Les données ne seront pas persistées.');
   }
 }
 
@@ -1034,7 +1075,7 @@ export async function createClient(clientData: Omit<Client, 'id' | 'created_at' 
     throw error;
   }
   
-  saveAllData();
+  await saveAllData();
   return newClient;
 }
 
@@ -1051,7 +1092,7 @@ export async function updateClient(id: string, clientData: Partial<Omit<Client, 
     if (isKvAvailable()) {
       await writeClients(clients);
     }
-    saveAllData();
+    await saveAllData();
     return clients[index];
   }
   return null;
@@ -1066,7 +1107,7 @@ export async function deleteClient(id: string): Promise<boolean> {
     if (isKvAvailable()) {
       await writeClients(clients);
     }
-    saveAllData();
+    await saveAllData();
     return true;
   }
   return false;
@@ -1172,7 +1213,7 @@ export async function createQuestionnaireSession(sessionData: Omit<Questionnaire
     throw error;
   }
   
-  saveAllData();
+  await saveAllData();
   return newSession;
 }
 
@@ -1209,7 +1250,7 @@ export async function updateQuestionnaireSession(id: string, sessionData: Partia
       throw error;
     }
     
-    saveAllData();
+    await saveAllData();
     return questionnaireSessions[index];
   }
   return null;
@@ -1224,7 +1265,7 @@ export async function deleteQuestionnaireSession(id: string): Promise<boolean> {
     if (isKvAvailable()) {
       await writeQuestionnaireSessions(questionnaireSessions);
     }
-    saveAllData();
+    await saveAllData();
     return true;
   }
   return false;
@@ -1263,7 +1304,7 @@ export async function createRespondentProfile(profileData: Omit<RespondentProfil
     throw error;
   }
   
-  saveAllData();
+  await saveAllData();
   return newProfile;
 }
 
@@ -1329,7 +1370,7 @@ export async function addSessionResponse(responseData: Omit<SessionResponse, 'id
     throw error;
   }
   
-  saveAllData();
+  await saveAllData();
   return newResponse;
 }
 
@@ -1482,7 +1523,7 @@ export async function calculateSessionResults(sessionId: string): Promise<Sessio
   if (isKvAvailable()) {
     await writeSessionResults(sessionResults);
   }
-  saveAllData();
+  await saveAllData();
   return results;
 }
 
@@ -1572,7 +1613,7 @@ export async function recalculateSessionResults(sessionId: string): Promise<Sess
   if (isKvAvailable()) {
     await writeSessionResults(sessionResults);
   }
-  saveAllData();
+  await saveAllData();
   
   console.log(`Résultats recalculés pour ${sessionId}:`, results);
   
@@ -1812,7 +1853,7 @@ export function addAnalysisAxis(axis: Omit<AnalysisAxis, 'id' | 'created_at'>): 
     created_at: now
   };
   analysisAxes.push(newAxis);
-  saveAllData();
+  await saveAllData();
   return newAxis;
 }
 
@@ -1820,7 +1861,7 @@ export function updateAnalysisAxis(id: string, axis: Partial<Omit<AnalysisAxis, 
   const index = analysisAxes.findIndex(a => a.id === id);
   if (index !== -1) {
     analysisAxes[index] = { ...analysisAxes[index], ...axis };
-    saveAllData();
+    await saveAllData();
     return analysisAxes[index];
   }
   return null;
@@ -1832,7 +1873,7 @@ export function deleteAnalysisAxis(id: string): boolean {
     analysisAxes.splice(index, 1);
     // Supprimer aussi les associations client
     clientAnalysisAxes = clientAnalysisAxes.filter(ca => ca.axis_id !== id);
-    saveAllData();
+    await saveAllData();
     return true;
   }
   return false;
@@ -1881,7 +1922,7 @@ export async function setClientAnalysisAxes(clientId: string, axisIds: string[])
   if (isKvAvailable()) {
     await writeClientAnalysisAxes(clientAnalysisAxes);
   }
-  saveAllData();
+  await saveAllData();
 }
 
 export async function deleteClientAnalysisAxes(clientId: string): Promise<void> {
@@ -1891,7 +1932,7 @@ export async function deleteClientAnalysisAxes(clientId: string): Promise<void> 
   if (isKvAvailable()) {
     await writeClientAnalysisAxes(clientAnalysisAxes);
   }
-  saveAllData();
+  await saveAllData();
 }
 
 // ===== FONCTIONS POUR LA GESTION DES AXES SPÉCIFIQUES AUX CLIENTS =====
@@ -1964,7 +2005,7 @@ export async function addClientAnalysisAxis(axis: Omit<ClientSpecificAxis, 'id' 
     throw error;
   }
   
-  saveAllData();
+  await saveAllData();
   return newAxis;
 }
 
@@ -1995,7 +2036,7 @@ export async function updateClientAnalysisAxis(id: string, axis: Partial<Omit<Cl
       throw error;
     }
     
-    saveAllData();
+    await saveAllData();
     return clientSpecificAxes[index];
   }
   return null;
@@ -2010,7 +2051,7 @@ export async function deleteClientAnalysisAxis(id: string): Promise<boolean> {
     if (isKvAvailable()) {
       await writeClientSpecificAxes(clientSpecificAxes);
     }
-    saveAllData();
+    await saveAllData();
     return true;
   }
   return false;
@@ -2056,7 +2097,7 @@ export async function getSessionAnalysisAxes(sessionId: string): Promise<Analysi
     if (isKvAvailable()) {
       await writeQuestionnaireSessions(questionnaireSessions);
     }
-    saveAllData();
+    await saveAllData();
     return effectiveAxes;
   }
   
@@ -2076,7 +2117,7 @@ export async function migrateSessionsWithFrozenAxes(): Promise<void> {
   }
   
   if (updated) {
-    saveAllData();
+    await saveAllData();
     console.log('Migration des axes figés terminée pour toutes les sessions');
   }
 }
@@ -2098,7 +2139,7 @@ export function setSetting(key: string, value: string): void {
   } else {
     settings.push({ key, value });
   }
-  saveAllData();
+  await saveAllData();
 }
 
 // ===== FONCTIONS POUR L'ANCIEN SYSTÈME (COMPATIBILITÉ) =====
@@ -2333,7 +2374,7 @@ export async function saveDomainAnalysis(sessionId: string): Promise<DomainAnaly
   console.log(`Analyses par domaine sauvegardées pour ${sessionId}: ${newAnalyses.length} nouvelles analyses ajoutées`);
   
   // Sauvegarder
-  saveAllData();
+  await saveAllData();
   
   return newAnalyses;
 }
@@ -2351,7 +2392,7 @@ export function getAllDomainAnalysis(): DomainAnalysis[] {
   await loadAllData();
   await initDefaultData();
   migrateSessionsWithFrozenAxes(); // Migration des axes figés
-  saveAllData();
+  await saveAllData();
 })();
 
 // Initialiser le super-admin (chargé dynamiquement pour éviter les imports circulaires)
