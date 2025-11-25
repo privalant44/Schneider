@@ -13,6 +13,8 @@ export const dynamic = 'force-dynamic';
  * 2. Appelez GET /api/admin/init depuis votre navigateur
  * 3. Vérifiez que le super-admin est créé
  * 4. Supprimez cette route pour des raisons de sécurité
+ * 
+ * URL: https://votre-projet.vercel.app/api/admin/init
  */
 export async function GET(request: NextRequest) {
   try {
