@@ -17,9 +17,11 @@ export async function GET() {
   try {
     // 1. Vérifier l'environnement
     const isVercel = !!process.env.VERCEL;
+    const hasRedisUrl = !!process.env.REDIS_URL;
     const hasKvUrl = !!process.env.KV_REST_API_URL;
     const hasKvToken = !!process.env.KV_REST_API_TOKEN;
     const env = process.env.VERCEL_ENV || process.env.NODE_ENV || 'unknown';
+    const isConfigured = hasRedisUrl || (hasKvUrl && hasKvToken);
     
     diagnostics.push({
       category: 'Environnement',
@@ -28,28 +30,34 @@ export async function GET() {
       details: {
         isVercel,
         env,
+        hasRedisUrl,
         hasKvUrl,
         hasKvToken
       }
     });
 
     // 2. Vérifier la configuration KV
-    if (isVercel && (!hasKvUrl || !hasKvToken)) {
+    if (isVercel && !isConfigured) {
       diagnostics.push({
         category: 'Configuration KV',
         status: 'error',
         message: 'Vercel KV non configuré. Variables d\'environnement manquantes.',
         details: {
+          REDIS_URL: hasRedisUrl ? '✅ Présent' : '❌ Manquant',
           KV_REST_API_URL: hasKvUrl ? '✅ Présent' : '❌ Manquant',
-          KV_REST_API_TOKEN: hasKvToken ? '✅ Présent' : '❌ Manquant'
+          KV_REST_API_TOKEN: hasKvToken ? '✅ Présent' : '❌ Manquant',
+          note: 'Au moins REDIS_URL ou (KV_REST_API_URL + KV_REST_API_TOKEN) doit être configuré'
         }
       });
-    } else if (hasKvUrl && hasKvToken) {
+    } else if (isConfigured) {
       diagnostics.push({
         category: 'Configuration KV',
         status: 'ok',
-        message: 'Variables d\'environnement KV présentes',
+        message: hasRedisUrl 
+          ? 'REDIS_URL est configuré (format standard)'
+          : 'Variables d\'environnement KV présentes (format REST API)',
         details: {
+          REDIS_URL: hasRedisUrl ? '✅ Présent' : '❌ Manquant',
           KV_REST_API_URL: hasKvUrl ? '✅ Présent' : '❌ Manquant',
           KV_REST_API_TOKEN: hasKvToken ? '✅ Présent' : '❌ Manquant'
         }
@@ -57,7 +65,7 @@ export async function GET() {
     }
 
     // 3. Tester la connexion KV (si configuré)
-    if (hasKvUrl && hasKvToken) {
+    if (isConfigured) {
       try {
         // Test de connexion simple
         const testKey = 'diagnostic_test';
@@ -94,7 +102,7 @@ export async function GET() {
     }
 
     // 4. Vérifier les utilisateurs dans KV
-    if (hasKvUrl && hasKvToken) {
+    if (isConfigured) {
       try {
         const users = await readUsers();
         diagnostics.push({
@@ -196,4 +204,5 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+
 

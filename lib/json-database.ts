@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { kv } from '@vercel/kv';
 import { 
   Client, 
   QuestionnaireSession, 
@@ -25,6 +26,10 @@ const CLIENT_SPECIFIC_AXES_FILE = path.join(DATA_DIR, 'client-specific-axes.json
 const QUESTIONS_FILE = path.join(DATA_DIR, 'questions.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const DOMAIN_ANALYSIS_FILE = path.join(DATA_DIR, 'domain-analysis.json');
+
+// Clés Vercel KV
+const QUESTIONS_KEY = 'questions';
+const NEXT_QUESTION_ID_KEY = 'next_question_id';
 
 // Interface pour les questions (compatible avec l'ancien système)
 interface Question {
@@ -79,6 +84,25 @@ let settings: Setting[] = [];
 let domainAnalysis: DomainAnalysis[] = [];
 let nextId = 1;
 
+// Fonction pour vérifier si on est sur Vercel
+function isVercel(): boolean {
+  return !!process.env.VERCEL;
+}
+
+// Fonction pour vérifier si Vercel KV est disponible
+// Supporte deux formats : REDIS_URL (format standard) ou KV_REST_API_URL + KV_REST_API_TOKEN (format REST API)
+function isKvAvailable(): boolean {
+  // Format 1: REDIS_URL (format standard Redis)
+  if (process.env.REDIS_URL) {
+    return true;
+  }
+  // Format 2: KV_REST_API_URL + KV_REST_API_TOKEN (format REST API Vercel KV)
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    return true;
+  }
+  return false;
+}
+
 // Fonction pour s'assurer que le dossier data existe
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -110,7 +134,7 @@ function writeJsonFile<T>(filePath: string, data: T[]): void {
 }
 
 // Fonction pour charger toutes les données
-function loadAllData() {
+async function loadAllData() {
   clients = readJsonFile(CLIENTS_FILE, []);
   questionnaireSessions = readJsonFile(SESSIONS_FILE, []);
   respondentProfiles = readJsonFile(RESPONDENT_PROFILES_FILE, []);
@@ -119,7 +143,15 @@ function loadAllData() {
   analysisAxes = readJsonFile(ANALYSIS_AXES_FILE, []);
   clientAnalysisAxes = readJsonFile(CLIENT_ANALYSIS_AXES_FILE, []);
   clientSpecificAxes = readJsonFile(CLIENT_SPECIFIC_AXES_FILE, []);
-  questions = readJsonFile(QUESTIONS_FILE, []);
+  
+  // Charger les questions depuis KV si disponible, sinon depuis le fichier
+  try {
+    questions = await readQuestions();
+  } catch (error) {
+    console.error('Erreur lors du chargement des questions:', error);
+    questions = readJsonFile(QUESTIONS_FILE, []);
+  }
+  
   settings = readJsonFile(SETTINGS_FILE, []);
   domainAnalysis = readJsonFile(DOMAIN_ANALYSIS_FILE, []);
   
@@ -150,9 +182,10 @@ function saveAllData() {
 }
 
 // Initialiser les données par défaut si nécessaire
-function initDefaultData() {
-  if (questions.length === 0) {
-    questions = [
+async function initDefaultData() {
+  const currentQuestions = await readQuestions().catch(() => questions);
+  if (currentQuestions.length === 0) {
+    const defaultQuestions: Question[] = [
       {
         id: 1,
         question_text: 'Comment préférez-vous organiser votre travail ?',
@@ -234,7 +267,14 @@ function initDefaultData() {
         updated_at: new Date().toISOString()
       }
     ];
+    
+    // Sauvegarder les questions par défaut dans KV ou fichier
+    await writeQuestions(defaultQuestions);
+    questions = defaultQuestions;
     nextId = 6;
+  } else {
+    // Mettre à jour le cache local avec les questions existantes
+    questions = currentQuestions;
   }
 
   if (analysisAxes.length === 0) {
@@ -697,48 +737,146 @@ export function compareSessions(session1Id: string, session2Id: string): Session
   };
 }
 
-// ===== FONCTIONS POUR LA GESTION DES QUESTIONS (COMPATIBILITÉ) =====
+// ===== FONCTIONS POUR LA GESTION DES QUESTIONS (AVEC VERCEL KV) =====
 
-export function getQuestions(): Question[] {
-  return questions.sort((a, b) => a.order_index - b.order_index);
+async function readQuestions(): Promise<Question[]> {
+  if (isKvAvailable()) {
+    try {
+      const questionsData = await kv.get<Question[]>(QUESTIONS_KEY);
+      return questionsData || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des questions depuis KV:', error);
+      return [];
+    }
+  }
+
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+
+  ensureDataDir();
+  try {
+    if (fs.existsSync(QUESTIONS_FILE)) {
+      const data = fs.readFileSync(QUESTIONS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des questions:', error);
+  }
+  return [];
 }
 
-export function getQuestion(id: number): Question | null {
-  return questions.find(q => q.id === id) || null;
+async function writeQuestions(questionsData: Question[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kv.set(QUESTIONS_KEY, questionsData);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des questions dans KV:', error);
+      throw error;
+    }
+  }
+
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+
+  ensureDataDir();
+  try {
+    fs.writeFileSync(QUESTIONS_FILE, JSON.stringify(questionsData, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des questions:', error);
+    throw error;
+  }
 }
 
-export function addQuestion(question: Omit<Question, 'id' | 'created_at' | 'updated_at'>): Question {
+async function getNextQuestionId(): Promise<number> {
+  if (isKvAvailable()) {
+    try {
+      const currentId = await kv.get<number>(NEXT_QUESTION_ID_KEY);
+      const nextId = (currentId || 0) + 1;
+      await kv.set(NEXT_QUESTION_ID_KEY, nextId);
+      return nextId;
+    } catch (error) {
+      console.error('Erreur lors de la récupération du prochain ID depuis KV:', error);
+      // Fallback: calculer depuis les questions existantes
+      const questionsData = await readQuestions();
+      if (questionsData.length === 0) return 1;
+      const maxId = Math.max(...questionsData.map(q => q.id));
+      const nextId = maxId + 1;
+      await kv.set(NEXT_QUESTION_ID_KEY, nextId);
+      return nextId;
+    }
+  }
+
+  // En développement local, utiliser la variable globale
+  const questionsData = await readQuestions();
+  if (questionsData.length === 0) return 1;
+  const maxId = Math.max(...questionsData.map(q => q.id));
+  return maxId + 1;
+}
+
+export async function getQuestions(): Promise<Question[]> {
+  const questionsData = await readQuestions();
+  return questionsData.sort((a, b) => a.order_index - b.order_index);
+}
+
+export async function getQuestion(id: number): Promise<Question | null> {
+  const questionsData = await readQuestions();
+  return questionsData.find(q => q.id === id) || null;
+}
+
+export async function addQuestion(question: Omit<Question, 'id' | 'created_at' | 'updated_at'>): Promise<Question> {
   const now = new Date().toISOString();
+  const id = await getNextQuestionId();
   const newQuestion: Question = { 
     ...question, 
-    id: nextId++,
+    id,
     created_at: now,
     updated_at: now
   };
-  questions.push(newQuestion);
-  saveAllData();
+  
+  const questionsData = await readQuestions();
+  questionsData.push(newQuestion);
+  await writeQuestions(questionsData);
+  
+  // Mettre à jour le cache local pour compatibilité
+  questions = questionsData;
+  
   return newQuestion;
 }
 
-export function updateQuestion(id: number, question: Partial<Omit<Question, 'id' | 'created_at'>>): Question | null {
-  const index = questions.findIndex(q => q.id === id);
+export async function updateQuestion(id: number, question: Partial<Omit<Question, 'id' | 'created_at'>>): Promise<Question | null> {
+  const questionsData = await readQuestions();
+  const index = questionsData.findIndex(q => q.id === id);
+  
   if (index !== -1) {
-    questions[index] = { 
-      ...questions[index], 
+    questionsData[index] = { 
+      ...questionsData[index], 
       ...question,
       updated_at: new Date().toISOString()
     };
-    saveAllData();
-    return questions[index];
+    await writeQuestions(questionsData);
+    
+    // Mettre à jour le cache local pour compatibilité
+    questions = questionsData;
+    
+    return questionsData[index];
   }
   return null;
 }
 
-export function deleteQuestion(id: number): boolean {
-  const index = questions.findIndex(q => q.id === id);
+export async function deleteQuestion(id: number): Promise<boolean> {
+  const questionsData = await readQuestions();
+  const index = questionsData.findIndex(q => q.id === id);
+  
   if (index !== -1) {
-    questions.splice(index, 1);
-    saveAllData();
+    questionsData.splice(index, 1);
+    await writeQuestions(questionsData);
+    
+    // Mettre à jour le cache local pour compatibilité
+    questions = questionsData;
+    
     return true;
   }
   return false;
@@ -1060,9 +1198,10 @@ export function deleteSessionResponses(sessionId: string) {
 
 // ===== FONCTIONS DE DIAGNOSTIC =====
 
-export function getDatabaseStatus() {
+export async function getDatabaseStatus() {
+  const questionsData = await getQuestions().catch(() => questions);
   return {
-    questions: questions.length,
+    questions: questionsData.length,
     clients: clients.length,
     sessions: 0, // Anciennes sessions
     questionnaireSessions: questionnaireSessions.length,
@@ -1110,7 +1249,7 @@ export function getShortUrlDiagnostics() {
 }
 
 // Fonctions pour l'analyse par domaine
-export function calculateDomainAnalysis(sessionId: string): DomainAnalysis[] {
+export async function calculateDomainAnalysis(sessionId: string): Promise<DomainAnalysis[]> {
   // Récupérer toutes les réponses pour cette session
   const sessionResponses = getSessionResponses(sessionId);
   
@@ -1121,7 +1260,8 @@ export function calculateDomainAnalysis(sessionId: string): DomainAnalysis[] {
   }
 
   // Récupérer toutes les questions avec leurs domaines
-  const questionsWithDomains = questions.filter(q => q.domaine);
+  const allQuestions = await getQuestions();
+  const questionsWithDomains = allQuestions.filter(q => q.domaine);
   
   // Grouper les réponses par domaine
   const responsesByDomain: Record<string, SessionResponse[]> = {};
@@ -1177,14 +1317,14 @@ export function calculateDomainAnalysis(sessionId: string): DomainAnalysis[] {
   return analyses;
 }
 
-export function saveDomainAnalysis(sessionId: string): DomainAnalysis[] {
+export async function saveDomainAnalysis(sessionId: string): Promise<DomainAnalysis[]> {
   // Supprimer les analyses existantes pour cette session
   domainAnalysis = domainAnalysis.filter(da => da.session_id !== sessionId);
   
   console.log(`Sauvegarde des analyses par domaine pour ${sessionId}: ${domainAnalysis.length} analyses existantes supprimées`);
   
   // Calculer les nouvelles analyses
-  const newAnalyses = calculateDomainAnalysis(sessionId);
+  const newAnalyses = await calculateDomainAnalysis(sessionId);
   
   // Ajouter les nouvelles analyses
   domainAnalysis.push(...newAnalyses);
@@ -1206,10 +1346,12 @@ export function getAllDomainAnalysis(): DomainAnalysis[] {
 }
 
 // Initialiser la base de données
-loadAllData();
-initDefaultData();
-migrateSessionsWithFrozenAxes(); // Migration des axes figés
-saveAllData();
+(async () => {
+  await loadAllData();
+  await initDefaultData();
+  migrateSessionsWithFrozenAxes(); // Migration des axes figés
+  saveAllData();
+})();
 
 // Initialiser le super-admin (chargé dynamiquement pour éviter les imports circulaires)
 setTimeout(async () => {

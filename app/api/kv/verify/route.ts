@@ -9,26 +9,33 @@ export const dynamic = 'force-dynamic';
  * Usage :
  * - Appelez GET /api/kv/verify depuis votre navigateur ou via curl
  * - Vérifie les variables d'environnement, la connexion et les opérations de base
+ * - Supporte REDIS_URL (format standard) et KV_REST_API_URL/KV_REST_API_TOKEN (format REST API)
  */
 export async function GET() {
   const checks: Array<{ name: string; status: 'ok' | 'error'; message: string }> = [];
   
   try {
     // 1. Vérifier les variables d'environnement
-    const hasUrl = !!process.env.KV_REST_API_URL;
-    const hasToken = !!process.env.KV_REST_API_TOKEN;
+    const hasRedisUrl = !!process.env.REDIS_URL;
+    const hasKvUrl = !!process.env.KV_REST_API_URL;
+    const hasKvToken = !!process.env.KV_REST_API_TOKEN;
     const isVercel = !!process.env.VERCEL;
+    
+    // Vérifier si au moins un format est configuré
+    const isConfigured = hasRedisUrl || (hasKvUrl && hasKvToken);
     
     checks.push({
       name: 'Variables d\'environnement',
-      status: hasUrl && hasToken ? 'ok' : 'error',
-      message: hasUrl && hasToken 
-        ? 'KV_REST_API_URL et KV_REST_API_TOKEN sont configurés'
-        : `Manquants: ${!hasUrl ? 'KV_REST_API_URL' : ''} ${!hasToken ? 'KV_REST_API_TOKEN' : ''}`.trim()
+      status: isConfigured ? 'ok' : 'error',
+      message: isConfigured 
+        ? hasRedisUrl 
+          ? 'REDIS_URL est configuré (format standard)'
+          : 'KV_REST_API_URL et KV_REST_API_TOKEN sont configurés (format REST API)'
+        : `Manquants: ${!hasRedisUrl && !hasKvUrl ? 'REDIS_URL ou KV_REST_API_URL' : ''} ${!hasKvToken && !hasRedisUrl ? 'KV_REST_API_TOKEN' : ''}`.trim()
     });
 
     // 2. Test de connexion (seulement si les variables sont présentes)
-    if (hasUrl && hasToken) {
+    if (isConfigured) {
       try {
         // Test simple : écrire une valeur de test
         const testKey = 'kv_verification_test';
@@ -75,7 +82,7 @@ export async function GET() {
     }
 
     // 3. Vérifier les clés utilisées par l'application
-    if (hasUrl && hasToken) {
+    if (isConfigured) {
       try {
         const users = await kv.get('admin_users');
         const resetTokens = await kv.get('password_reset_tokens');
@@ -114,10 +121,15 @@ export async function GET() {
         ok: checks.filter(c => c.status === 'ok').length,
         errors: checks.filter(c => c.status === 'error').length
       },
-      recommendations: !hasUrl || !hasToken 
+      configuration: {
+        REDIS_URL: hasRedisUrl ? '✅ Présent' : '❌ Manquant',
+        KV_REST_API_URL: hasKvUrl ? '✅ Présent' : '❌ Manquant',
+        KV_REST_API_TOKEN: hasKvToken ? '✅ Présent' : '❌ Manquant'
+      },
+      recommendations: !isConfigured 
         ? [
             'Créez une base de données Redis dans Vercel Dashboard → Storage',
-            'Les variables d\'environnement seront configurées automatiquement',
+            'Les variables d\'environnement (REDIS_URL ou KV_REST_API_URL/KV_REST_API_TOKEN) seront configurées automatiquement',
             'Consultez VERCEL_KV_SETUP.md pour les instructions détaillées'
           ]
         : allOk 

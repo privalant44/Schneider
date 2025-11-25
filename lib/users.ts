@@ -18,8 +18,17 @@ function isVercel(): boolean {
 }
 
 // Vérifier si Vercel KV est disponible
+// Supporte deux formats : REDIS_URL (format standard) ou KV_REST_API_URL + KV_REST_API_TOKEN (format REST API)
 function isKvAvailable(): boolean {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  // Format 1: REDIS_URL (format standard Redis)
+  if (process.env.REDIS_URL) {
+    return true;
+  }
+  // Format 2: KV_REST_API_URL + KV_REST_API_TOKEN (format REST API Vercel KV)
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    return true;
+  }
+  return false;
 }
 
 // S'assurer que le dossier data existe (pour fallback local)
