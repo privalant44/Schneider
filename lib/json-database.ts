@@ -225,43 +225,85 @@ function writeJsonFile<T>(filePath: string, data: T[]): void {
 // Fonction pour charger toutes les données
 async function loadAllData() {
   // Charger les clients depuis KV si disponible, sinon depuis le fichier
+  // Sur Vercel, on DOIT utiliser Redis - pas de fallback sur fichiers JSON
   try {
     clients = await readClients();
+    if (isVercel()) {
+      console.log(`Clients chargés depuis Redis: ${clients.length} client(s)`);
+    }
   } catch (error) {
     console.error('Erreur lors du chargement des clients:', error);
-    clients = readJsonFile(CLIENTS_FILE, []);
+    if (isVercel()) {
+      console.error('⚠️ Sur Vercel, les fichiers JSON ne sont pas disponibles. Utilisation de Redis obligatoire.');
+      // Sur Vercel, on ne peut pas utiliser les fichiers JSON (système de fichiers en lecture seule)
+      clients = [];
+    } else {
+      clients = readJsonFile(CLIENTS_FILE, []);
+    }
   }
   
   // Charger les sessions de questionnaire depuis KV si disponible, sinon depuis le fichier
   try {
     questionnaireSessions = await readQuestionnaireSessions();
+    if (isVercel()) {
+      console.log(`Sessions chargées depuis Redis: ${questionnaireSessions.length} session(s)`);
+    }
   } catch (error) {
     console.error('Erreur lors du chargement des sessions de questionnaire:', error);
-    questionnaireSessions = readJsonFile(SESSIONS_FILE, []);
+    if (isVercel()) {
+      console.error('⚠️ Sur Vercel, les fichiers JSON ne sont pas disponibles. Utilisation de Redis obligatoire.');
+      questionnaireSessions = [];
+    } else {
+      questionnaireSessions = readJsonFile(SESSIONS_FILE, []);
+    }
   }
   
   // Charger les profils de répondants depuis KV si disponible, sinon depuis le fichier
   try {
     respondentProfiles = await readRespondentProfiles();
+    if (isVercel()) {
+      console.log(`Profils chargés depuis Redis: ${respondentProfiles.length} profil(s)`);
+    }
   } catch (error) {
     console.error('Erreur lors du chargement des profils de répondants:', error);
-  respondentProfiles = readJsonFile(RESPONDENT_PROFILES_FILE, []);
+    if (isVercel()) {
+      console.error('⚠️ Sur Vercel, les fichiers JSON ne sont pas disponibles. Utilisation de Redis obligatoire.');
+      respondentProfiles = [];
+    } else {
+      respondentProfiles = readJsonFile(RESPONDENT_PROFILES_FILE, []);
+    }
   }
   
   // Charger les réponses de session depuis KV si disponible, sinon depuis le fichier
   try {
     sessionResponses = await readSessionResponses();
+    if (isVercel()) {
+      console.log(`Réponses chargées depuis Redis: ${sessionResponses.length} réponse(s)`);
+    }
   } catch (error) {
     console.error('Erreur lors du chargement des réponses de session:', error);
-  sessionResponses = readJsonFile(SESSION_RESPONSES_FILE, []);
+    if (isVercel()) {
+      console.error('⚠️ Sur Vercel, les fichiers JSON ne sont pas disponibles. Utilisation de Redis obligatoire.');
+      sessionResponses = [];
+    } else {
+      sessionResponses = readJsonFile(SESSION_RESPONSES_FILE, []);
+    }
   }
   
   // Charger les résultats de session depuis KV si disponible, sinon depuis le fichier
   try {
     sessionResults = await readSessionResults();
+    if (isVercel()) {
+      console.log(`Résultats chargés depuis Redis: ${sessionResults.length} résultat(s)`);
+    }
   } catch (error) {
     console.error('Erreur lors du chargement des résultats de session:', error);
-  sessionResults = readJsonFile(SESSION_RESULTS_FILE, []);
+    if (isVercel()) {
+      console.error('⚠️ Sur Vercel, les fichiers JSON ne sont pas disponibles. Utilisation de Redis obligatoire.');
+      sessionResults = [];
+    } else {
+      sessionResults = readJsonFile(SESSION_RESULTS_FILE, []);
+    }
   }
   
   // Charger les axes d'analyse par client depuis KV si disponible, sinon depuis le fichier
@@ -1311,10 +1353,20 @@ export function getRespondentProfiles(): RespondentProfile[] {
 // ===== FONCTIONS POUR LA GESTION DES RÉPONSES DE SESSION =====
 
 export async function addSessionResponse(responseData: Omit<SessionResponse, 'id' | 'created_at'>): Promise<SessionResponse> {
+  // IMPORTANT: Recharger les réponses depuis Redis AVANT d'ajouter pour éviter d'écraser les données
+  await reloadSessionDataIfNeeded();
+  
   const now = new Date().toISOString();
+  
+  // Calculer le prochain ID en se basant sur les réponses actuelles
+  const maxId = sessionResponses.length > 0 
+    ? Math.max(...sessionResponses.map(r => typeof r.id === 'number' ? r.id : 0))
+    : 0;
+  const nextResponseId = maxId + 1;
+  
   const newResponse: SessionResponse = {
     ...responseData,
-    id: nextId++,
+    id: nextResponseId,
     created_at: now
   };
   sessionResponses.push(newResponse);
@@ -1323,7 +1375,7 @@ export async function addSessionResponse(responseData: Omit<SessionResponse, 'id
   try {
     if (isKvAvailable()) {
       await writeSessionResponses(sessionResponses);
-      console.log(`Réponse de session créée et sauvegardée dans Redis: ${newResponse.id} pour session ${newResponse.session_id}`);
+      console.log(`Réponse de session créée et sauvegardée dans Redis: ${newResponse.id} pour session ${newResponse.session_id} (total: ${sessionResponses.length})`);
     } else if (isVercel()) {
       // Sur Vercel, on DOIT avoir Redis/KV
       throw new Error('Vercel KV non configuré. Impossible de sauvegarder la réponse.');
