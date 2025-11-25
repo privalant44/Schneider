@@ -661,6 +661,7 @@ async function writeClients(clientsData: Client[]): Promise<void> {
   if (isKvAvailable()) {
     try {
       await kvSet(CLIENTS_KEY, clientsData);
+      console.log(`Clients sauvegardés dans Redis: ${clientsData.length} client(s)`);
       return;
     } catch (error) {
       console.error('Erreur lors de l\'écriture des clients dans KV/Redis:', error);
@@ -675,6 +676,7 @@ async function writeClients(clientsData: Client[]): Promise<void> {
   ensureDataDir();
   try {
     fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clientsData, null, 2), 'utf8');
+    console.log(`Clients sauvegardés dans fichier: ${clientsData.length} client(s)`);
   } catch (error) {
     console.error('Erreur lors de l\'écriture des clients:', error);
     throw error;
@@ -1055,10 +1057,28 @@ export async function createClient(clientData: Omit<Client, 'id' | 'created_at' 
   };
   clients.push(newClient);
   
-  // Sauvegarder dans KV/Redis si disponible
-  if (isKvAvailable()) {
-    await writeClients(clients);
+  // Sauvegarder dans KV/Redis si disponible (TOUJOURS sur Vercel)
+  try {
+    if (isKvAvailable()) {
+      await writeClients(clients);
+      console.log(`Client créé et sauvegardé dans Redis: ${newClient.id} - ${newClient.name}`);
+    } else if (isVercel()) {
+      // Sur Vercel, on DOIT avoir Redis/KV
+      throw new Error('Vercel KV non configuré. Impossible de sauvegarder le client.');
+    } else {
+      // En local, sauvegarder dans le fichier
+      await writeClients(clients);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde du client:', error);
+    // Retirer le client de la liste en mémoire si la sauvegarde a échoué
+    const index = clients.findIndex(c => c.id === newClient.id);
+    if (index !== -1) {
+      clients.splice(index, 1);
+    }
+    throw error;
   }
+  
   saveAllData();
   return newClient;
 }
