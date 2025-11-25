@@ -1716,7 +1716,7 @@ async function getNextQuestionId(): Promise<number> {
       if (questionsData.length === 0) return 1;
       const maxId = Math.max(...questionsData.map(q => q.id));
       const nextId = maxId + 1;
-      await kv.set(NEXT_QUESTION_ID_KEY, nextId);
+      await kvSet(NEXT_QUESTION_ID_KEY, nextId);
       return nextId;
     }
   }
