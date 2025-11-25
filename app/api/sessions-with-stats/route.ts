@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     }, {} as Record<string, string>);
     
     // Enrichir les sessions avec les statistiques calculées en temps réel
-    const sessionsWithStats = sessions.map(session => {
+    const sessionsWithStats = await Promise.all(sessions.map(async (session) => {
       // Calculer les statistiques en temps réel depuis les données chargées
       const responses = kvAvailable && allResponses.length > 0
         ? allResponses.filter((r: any) => r.session_id === session.id)
@@ -90,7 +90,7 @@ export async function GET(request: Request) {
         start_date_formatted: new Date(session.start_date).toLocaleDateString('fr-FR'),
         end_date_formatted: session.end_date ? new Date(session.end_date).toLocaleDateString('fr-FR') : 'Non définie'
       };
-    });
+    }));
     
     // Trier par date de création décroissante
     sessionsWithStats.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
