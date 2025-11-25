@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getDatabaseStatus, getQuestions, getClients, getQuestionnaireSessions, getShortUrlDiagnostics } from '@/lib/json-database';
+import { Question } from '@/lib/types';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const status = getDatabaseStatus();
-    const questions = getQuestions();
+    const status = await getDatabaseStatus();
+    const questions: Question[] = await getQuestions();
     const clients = getClients();
     const sessions = getQuestionnaireSessions();
     const shortUrlDiagnostics = getShortUrlDiagnostics();
