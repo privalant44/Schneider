@@ -712,6 +712,7 @@ async function writeQuestionnaireSessions(sessions: QuestionnaireSession[]): Pro
   if (isKvAvailable()) {
     try {
       await kvSet(QUESTIONNAIRE_SESSIONS_KEY, sessions);
+      console.log(`Sessions sauvegardées dans Redis: ${sessions.length} session(s)`);
       return;
     } catch (error) {
       console.error('Erreur lors de l\'écriture des sessions de questionnaire dans KV/Redis:', error);
@@ -726,6 +727,7 @@ async function writeQuestionnaireSessions(sessions: QuestionnaireSession[]): Pro
   ensureDataDir();
   try {
     fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2), 'utf8');
+    console.log(`Sessions sauvegardées dans fichier: ${sessions.length} session(s)`);
   } catch (error) {
     console.error('Erreur lors de l\'écriture des sessions de questionnaire:', error);
     throw error;
