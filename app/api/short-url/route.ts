@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getQuestionnaireSessions } from '@/lib/json-database';
+import { getQuestionnaireSessions, kvGet, isKvAvailable } from '@/lib/json-database';
 
 export const dynamic = "force-dynamic"
+
+const QUESTIONNAIRE_SESSIONS_KEY = 'questionnaire_sessions';
 
 // Route publique - pas d'authentification requise
 export async function GET(request: Request) {
@@ -17,9 +19,35 @@ export async function GET(request: Request) {
       );
     }
     
+    console.log(`Recherche de session avec short_url: ${shortUrl}`);
+    
+    // Charger directement depuis Redis pour avoir les données les plus récentes
+    const kvAvailable = isKvAvailable();
+    let sessions: any[] = [];
+    
+    if (kvAvailable) {
+      try {
+        sessions = await kvGet<any[]>(QUESTIONNAIRE_SESSIONS_KEY) || [];
+        console.log(`Sessions chargées depuis Redis: ${sessions.length} session(s)`);
+      } catch (error) {
+        console.error('Erreur lors du chargement depuis Redis, utilisation des données en mémoire:', error);
+        // Fallback sur les données en mémoire
+        sessions = await getQuestionnaireSessions();
+      }
+    } else {
+      // Utiliser les données en mémoire
+      sessions = await getQuestionnaireSessions();
+    }
+    
+    console.log(`Total de sessions à rechercher: ${sessions.length}`);
+    if (sessions.length > 0) {
+      console.log(`Exemples de short_url: ${sessions.slice(0, 3).map((s: any) => s.short_url).join(', ')}`);
+    }
+    
     // Trouver la session par son URL courte
-    const sessions = await getQuestionnaireSessions();
     const session = sessions.find((s: any) => s.short_url === shortUrl);
+    
+    console.log(`Session trouvée: ${session ? 'OUI' : 'NON'}`);
     
     if (!session) {
       return NextResponse.json(
