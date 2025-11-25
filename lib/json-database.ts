@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { kvGet, kvSet, isKvAvailable as isKvAvailableFromManager } from './redis-manager';
+import { kvGet, kvSet, isKvAvailable } from './redis-manager';
 import { 
   Client, 
   QuestionnaireSession, 
