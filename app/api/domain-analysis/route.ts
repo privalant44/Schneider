@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDomainAnalysis, saveDomainAnalysis, getAllDomainAnalysis } from '@/lib/json-database';
+import { DomainAnalysis } from '@/lib/types';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
@@ -9,10 +12,10 @@ export async function GET(request: Request) {
 
     if (sessionId) {
       // Récupérer ou recalculer l'analyse pour une session spécifique
-      let analysis = getDomainAnalysis(sessionId);
+      let analysis: DomainAnalysis[] = getDomainAnalysis(sessionId);
       
       if (recalculate || analysis.length === 0) {
-        analysis = saveDomainAnalysis(sessionId);
+        analysis = await saveDomainAnalysis(sessionId);
       }
       
       return NextResponse.json(analysis);
@@ -42,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     // Recalculer et sauvegarder l'analyse pour la session
-    const analysis = saveDomainAnalysis(sessionId);
+    const analysis = await saveDomainAnalysis(sessionId);
     
     return NextResponse.json(analysis);
   } catch (error) {
