@@ -39,8 +39,19 @@ export async function POST(request: Request) {
     return NextResponse.json(newClient);
   } catch (error) {
     console.error('Erreur lors de la création du client:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Détails de l\'erreur:', {
+      message: errorMessage,
+      stack: errorStack,
+      isKvAvailable: process.env.REDIS_URL || (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) ? 'oui' : 'non',
+      isVercel: process.env.VERCEL ? 'oui' : 'non'
+    });
     return NextResponse.json(
-      { error: 'Erreur lors de la création du client' },
+      { 
+        error: 'Erreur lors de la création du client',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }

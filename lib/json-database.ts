@@ -1075,7 +1075,15 @@ export async function createClient(clientData: Omit<Client, 'id' | 'created_at' 
     throw error;
   }
   
-  await saveAllData();
+  // Sauvegarder via saveAllData() pour synchroniser avec les fichiers JSON en local
+  // Note: saveAllData() ne devrait pas échouer car on a déjà sauvegardé dans Redis
+  try {
+    await saveAllData();
+  } catch (error) {
+    // Log l'erreur mais ne pas faire échouer la création car Redis est déjà sauvegardé
+    console.error('⚠️ Erreur lors de la sauvegarde globale (non bloquante):', error);
+  }
+  
   return newClient;
 }
 
@@ -1213,7 +1221,15 @@ export async function createQuestionnaireSession(sessionData: Omit<Questionnaire
     throw error;
   }
   
-  await saveAllData();
+  // Sauvegarder via saveAllData() pour synchroniser avec les fichiers JSON en local
+  // Note: saveAllData() ne devrait pas échouer car on a déjà sauvegardé dans Redis
+  try {
+    await saveAllData();
+  } catch (error) {
+    // Log l'erreur mais ne pas faire échouer la création car Redis est déjà sauvegardé
+    console.error('⚠️ Erreur lors de la sauvegarde globale (non bloquante):', error);
+  }
+  
   return newSession;
 }
 
