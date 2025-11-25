@@ -66,7 +66,7 @@ export async function DELETE(
     } = await import('@/lib/json-database');
     
     // Supprimer la session et toutes les données associées
-    const sessionDeleted = deleteQuestionnaireSession(params.sessionId);
+    const sessionDeleted = await deleteQuestionnaireSession(params.sessionId);
     
     if (sessionDeleted) {
       // Supprimer les profils de répondants associés à cette session
