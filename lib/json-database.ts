@@ -1967,7 +1967,9 @@ export async function getEffectiveAnalysisAxesForClient(clientId: string): Promi
 }
 
 // Fonction pour récupérer les axes d'analyse d'une session (figés au moment de la création)
-export function getSessionAnalysisAxes(sessionId: string): AnalysisAxis[] {
+export async function getSessionAnalysisAxes(sessionId: string): Promise<AnalysisAxis[]> {
+  // Recharger les sessions depuis Redis avant de lire pour garantir la cohérence
+  await reloadSessionsIfNeeded();
   const session = questionnaireSessions.find(s => s.id === sessionId);
   if (session && session.frozen_analysis_axes) {
     return session.frozen_analysis_axes;
@@ -1978,6 +1980,10 @@ export function getSessionAnalysisAxes(sessionId: string): AnalysisAxis[] {
     const effectiveAxes = await getEffectiveAnalysisAxesForClient(session.client_id);
     // Mettre à jour la session avec les axes figés
     session.frozen_analysis_axes = effectiveAxes;
+    // Sauvegarder dans Redis
+    if (isKvAvailable()) {
+      await writeQuestionnaireSessions(questionnaireSessions);
+    }
     saveAllData();
     return effectiveAxes;
   }
