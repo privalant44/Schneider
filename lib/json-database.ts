@@ -447,6 +447,7 @@ async function writeClientSpecificAxes(axes: ClientSpecificAxis[]): Promise<void
   if (isKvAvailable()) {
     try {
       await kvSet(CLIENT_SPECIFIC_AXES_KEY, axes);
+      console.log(`Axes spécifiques par client sauvegardés dans Redis: ${axes.length} axe(s)`);
       return;
     } catch (error) {
       console.error('Erreur lors de l\'écriture des axes spécifiques par client dans KV/Redis:', error);
@@ -461,6 +462,7 @@ async function writeClientSpecificAxes(axes: ClientSpecificAxis[]): Promise<void
   ensureDataDir();
   try {
     fs.writeFileSync(CLIENT_SPECIFIC_AXES_FILE, JSON.stringify(axes, null, 2), 'utf8');
+    console.log(`Axes spécifiques par client sauvegardés dans fichier: ${axes.length} axe(s)`);
   } catch (error) {
     console.error('Erreur lors de l\'écriture des axes spécifiques par client:', error);
     throw error;
