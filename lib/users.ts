@@ -33,6 +33,7 @@ function ensureDataDir() {
 
 /**
  * Lit les utilisateurs depuis KV ou fichiers JSON (fallback)
+ * @returns Promise<AdminUser[]> Liste des utilisateurs
  */
 export async function readUsers(): Promise<AdminUser[]> {
   if (isKvAvailable()) {
