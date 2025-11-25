@@ -30,7 +30,8 @@ export async function POST(request: Request) {
     }
     
     // Si c'est une session de questionnaire (nouveau système), utiliser le nouveau flux
-    if (sessionId.startsWith('session_') && !sessionId.includes('_')) {
+    // Les sessions de questionnaire commencent par 'session_' et ont un format comme 'session_1234567890_abc123'
+    if (sessionId.startsWith('session_')) {
       // Nouveau système - créer un profil de répondant
       const profile = await createRespondentProfile({
         session_id: sessionId,

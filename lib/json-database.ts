@@ -555,6 +555,7 @@ async function writeSessionResponses(responses: SessionResponse[]): Promise<void
   if (isKvAvailable()) {
     try {
       await kvSet(SESSION_RESPONSES_KEY, responses);
+      console.log(`Réponses de session sauvegardées dans Redis: ${responses.length} réponse(s)`);
       return;
     } catch (error) {
       console.error('Erreur lors de l\'écriture des réponses de session dans KV/Redis:', error);
@@ -569,6 +570,7 @@ async function writeSessionResponses(responses: SessionResponse[]): Promise<void
   ensureDataDir();
   try {
     fs.writeFileSync(SESSION_RESPONSES_FILE, JSON.stringify(responses, null, 2), 'utf8');
+    console.log(`Réponses de session sauvegardées dans fichier: ${responses.length} réponse(s)`);
   } catch (error) {
     console.error('Erreur lors de l\'écriture des réponses de session:', error);
     throw error;
@@ -1292,10 +1294,28 @@ export async function addSessionResponse(responseData: Omit<SessionResponse, 'id
   };
   sessionResponses.push(newResponse);
   
-  // Sauvegarder dans KV/Redis si disponible
-  if (isKvAvailable()) {
-    await writeSessionResponses(sessionResponses);
+  // Sauvegarder dans KV/Redis si disponible (TOUJOURS sur Vercel)
+  try {
+    if (isKvAvailable()) {
+      await writeSessionResponses(sessionResponses);
+      console.log(`Réponse de session créée et sauvegardée dans Redis: ${newResponse.id} pour session ${newResponse.session_id}`);
+    } else if (isVercel()) {
+      // Sur Vercel, on DOIT avoir Redis/KV
+      throw new Error('Vercel KV non configuré. Impossible de sauvegarder la réponse.');
+    } else {
+      // En local, sauvegarder dans le fichier
+      await writeSessionResponses(sessionResponses);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de la réponse de session:', error);
+    // Retirer la réponse de la liste en mémoire si la sauvegarde a échoué
+    const index = sessionResponses.findIndex(r => r.id === newResponse.id);
+    if (index !== -1) {
+      sessionResponses.splice(index, 1);
+    }
+    throw error;
   }
+  
   saveAllData();
   return newResponse;
 }
