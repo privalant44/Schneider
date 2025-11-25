@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getQuestions, addQuestion, updateQuestion, deleteQuestion } from '@/lib/json-database';
+import { Question } from '@/lib/types';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const questions = getQuestions();
+    const questions = await getQuestions();
     return NextResponse.json(questions);
   } catch (error) {
     console.error('Erreur lors de la récupération des questions:', error);
@@ -24,7 +27,7 @@ export async function POST(request: Request) {
       domaine
     } = await request.json();
     
-    const newQuestion = addQuestion({
+    const newQuestion: Question = await addQuestion({
       question_text,
       text_a,
       text_b,
@@ -59,7 +62,7 @@ export async function PUT(request: Request) {
       domaine
     } = await request.json();
     
-    const updatedQuestion = updateQuestion(id, {
+    const updatedQuestion: Question | null = await updateQuestion(id, {
       question_text,
       text_a,
       text_b,
@@ -102,7 +105,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const success = deleteQuestion(id);
+    const success = await deleteQuestion(id);
     
     if (success) {
       return NextResponse.json({ success: true });
