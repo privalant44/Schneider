@@ -1079,10 +1079,17 @@ async function reloadSessionsIfNeeded(): Promise<void> {
   if (isKvAvailable()) {
     try {
       // Recharger les sessions depuis Redis pour garantir la cohérence
-      questionnaireSessions = await readQuestionnaireSessions();
-    } catch (error) {
-      console.error('Erreur lors du rechargement des sessions depuis Redis:', error);
-      // Continuer avec les données en mémoire en cas d'erreur
+      const sessionsFromRedis = await readQuestionnaireSessions();
+      questionnaireSessions = sessionsFromRedis;
+      console.log(`✅ Sessions rechargées depuis Redis: ${sessionsFromRedis.length} session(s)`);
+    } catch (error: any) {
+      console.error('❌ Erreur lors du rechargement des sessions depuis Redis:', error.message);
+      if (isVercel()) {
+        // En production, on ne peut pas continuer avec des données obsolètes
+        console.error('⚠️ CRITIQUE: Impossible de charger les sessions depuis Redis en production');
+        // Ne pas vider les sessions en mémoire pour éviter une perte totale, mais logger l'erreur
+      }
+      // Continuer avec les données en mémoire en cas d'erreur (fallback)
     }
   }
 }
@@ -1352,12 +1359,21 @@ async function reloadSessionDataIfNeeded(): Promise<void> {
   if (isKvAvailable()) {
     try {
       // Recharger les données depuis Redis pour garantir la cohérence
-      sessionResponses = await readSessionResponses();
-      respondentProfiles = await readRespondentProfiles();
-      sessionResults = await readSessionResults();
-    } catch (error) {
-      console.error('Erreur lors du rechargement des données de session depuis Redis:', error);
-      // Continuer avec les données en mémoire en cas d'erreur
+      const responsesFromRedis = await readSessionResponses();
+      const profilesFromRedis = await readRespondentProfiles();
+      const resultsFromRedis = await readSessionResults();
+      
+      sessionResponses = responsesFromRedis;
+      respondentProfiles = profilesFromRedis;
+      sessionResults = resultsFromRedis;
+      
+      console.log(`✅ Données de session rechargées depuis Redis: ${responsesFromRedis.length} réponse(s), ${profilesFromRedis.length} profil(s), ${resultsFromRedis.length} résultat(s)`);
+    } catch (error: any) {
+      console.error('❌ Erreur lors du rechargement des données de session depuis Redis:', error.message);
+      if (isVercel()) {
+        console.error('⚠️ CRITIQUE: Impossible de charger les données de session depuis Redis en production');
+      }
+      // Continuer avec les données en mémoire en cas d'erreur (fallback)
     }
   }
 }
@@ -1367,10 +1383,15 @@ async function reloadClientsIfNeeded(): Promise<void> {
   if (isKvAvailable()) {
     try {
       // Recharger les clients depuis Redis pour garantir la cohérence
-      clients = await readClients();
-    } catch (error) {
-      console.error('Erreur lors du rechargement des clients depuis Redis:', error);
-      // Continuer avec les données en mémoire en cas d'erreur
+      const clientsFromRedis = await readClients();
+      clients = clientsFromRedis;
+      console.log(`✅ Clients rechargés depuis Redis: ${clientsFromRedis.length} client(s)`);
+    } catch (error: any) {
+      console.error('❌ Erreur lors du rechargement des clients depuis Redis:', error.message);
+      if (isVercel()) {
+        console.error('⚠️ CRITIQUE: Impossible de charger les clients depuis Redis en production');
+      }
+      // Continuer avec les données en mémoire en cas d'erreur (fallback)
     }
   }
 }
@@ -1380,10 +1401,15 @@ async function reloadClientSpecificAxesIfNeeded(): Promise<void> {
   if (isKvAvailable()) {
     try {
       // Recharger les axes spécifiques depuis Redis pour garantir la cohérence
-      clientSpecificAxes = await readClientSpecificAxes();
-    } catch (error) {
-      console.error('Erreur lors du rechargement des axes spécifiques par client depuis Redis:', error);
-      // Continuer avec les données en mémoire en cas d'erreur
+      const axesFromRedis = await readClientSpecificAxes();
+      clientSpecificAxes = axesFromRedis;
+      console.log(`✅ Axes spécifiques rechargés depuis Redis: ${axesFromRedis.length} axe(s)`);
+    } catch (error: any) {
+      console.error('❌ Erreur lors du rechargement des axes spécifiques par client depuis Redis:', error.message);
+      if (isVercel()) {
+        console.error('⚠️ CRITIQUE: Impossible de charger les axes depuis Redis en production');
+      }
+      // Continuer avec les données en mémoire en cas d'erreur (fallback)
     }
   }
 }

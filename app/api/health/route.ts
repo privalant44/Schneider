@@ -1,100 +1,132 @@
 import { NextResponse } from 'next/server';
-import { logger } from '@/lib/utils/logger';
-import { APP_CONFIG } from '@/lib/utils/constants';
-import fs from 'fs';
-import path from 'path';
+import { checkRedisHealth } from '@/lib/redis-manager';
+import { kvGet, isKvAvailable } from '@/lib/json-database';
 
-export async function GET() {
-  try {
-    const healthCheck = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      version: APP_CONFIG.VERSION,
-      environment: process.env.NODE_ENV || 'development',
-      services: {
-        database: await checkDatabaseHealth(),
-        filesystem: await checkFilesystemHealth(),
-      },
-      memory: {
-        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-        external: Math.round(process.memoryUsage().external / 1024 / 1024),
-      },
+export const dynamic = "force-dynamic";
+
+const DATA_KEYS = [
+  'clients',
+  'questionnaire_sessions',
+  'client_specific_axes',
+  'questions',
+  'session_responses',
+  'respondent_profiles',
+  'session_results',
+  'settings'
+];
+
+export async function GET(request: Request) {
+  const startTime = Date.now();
+  const health: any = {
+    timestamp: new Date().toISOString(),
+    environment: process.env.VERCEL_ENV || 'local',
+    is_vercel: !!process.env.VERCEL,
+    status: 'unknown',
+    checks: {},
+    summary: {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      warnings: 0
+    }
+  };
+
+  // Check 1: Redis/KV disponibilité
+  health.checks.redis_available = {
+    name: 'Redis/KV disponible',
+    status: isKvAvailable() ? 'passed' : 'failed',
+    message: isKvAvailable() ? 'Redis/KV est configuré' : 'Redis/KV n\'est pas configuré'
+  };
+  health.summary.total++;
+  if (isKvAvailable()) health.summary.passed++;
+  else health.summary.failed++;
+
+  // Check 2: Santé Redis
+  if (isKvAvailable()) {
+    const redisHealth = await checkRedisHealth();
+    health.checks.redis_health = {
+      name: 'Santé Redis',
+      status: redisHealth.healthy ? 'passed' : 'failed',
+      message: redisHealth.healthy ? 'Redis répond correctement' : `Redis en erreur: ${redisHealth.error}`,
+      error: redisHealth.error
     };
-
-    logger.info('Health check performed', { status: healthCheck.status });
-
-    return NextResponse.json(healthCheck, { status: 200 });
-  } catch (error) {
-    logger.error('Health check failed', {}, error as Error);
-    
-    return NextResponse.json(
-      {
-        status: 'unhealthy',
-        timestamp: new Date().toISOString(),
-        error: 'Health check failed',
-      },
-      { status: 503 }
-    );
+    health.summary.total++;
+    if (redisHealth.healthy) health.summary.passed++;
+    else health.summary.failed++;
   }
-}
 
-async function checkDatabaseHealth(): Promise<{ status: string; details?: string }> {
-  try {
-    const dataDir = path.join(process.cwd(), 'data');
-    
-    if (!fs.existsSync(dataDir)) {
-      return { status: 'unhealthy', details: 'Data directory does not exist' };
+  // Check 3: Variables d'environnement
+  const hasRedisUrl = !!process.env.REDIS_URL;
+  const hasKvUrl = !!process.env.KV_REST_API_URL;
+  const hasKvToken = !!process.env.KV_REST_API_TOKEN;
+  
+  health.checks.env_vars = {
+    name: 'Variables d\'environnement',
+    status: (hasRedisUrl || (hasKvUrl && hasKvToken)) ? 'passed' : 'failed',
+    message: hasRedisUrl 
+      ? 'REDIS_URL configuré' 
+      : (hasKvUrl && hasKvToken)
+        ? 'KV_REST_API_URL et KV_REST_API_TOKEN configurés'
+        : 'Aucune variable Redis trouvée',
+    details: {
+      REDIS_URL: hasRedisUrl ? '✅' : '❌',
+      KV_REST_API_URL: hasKvUrl ? '✅' : '❌',
+      KV_REST_API_TOKEN: hasKvToken ? '✅' : '❌'
     }
+  };
+  health.summary.total++;
+  if (hasRedisUrl || (hasKvUrl && hasKvToken)) health.summary.passed++;
+  else health.summary.failed++;
 
-    // Vérifier que les fichiers de base de données sont accessibles
-    const requiredFiles = [
-      'clients.json',
-      'sessions.json',
-      'questions.json',
-      'respondent-profiles.json',
-      'session-responses.json',
-      'session-results.json',
-    ];
-
-    for (const file of requiredFiles) {
-      const filePath = path.join(dataDir, file);
-      if (!fs.existsSync(filePath)) {
-        return { status: 'unhealthy', details: `Missing required file: ${file}` };
-      }
-      
-      // Vérifier que le fichier est lisible
+  // Check 4: Données dans Redis
+  if (isKvAvailable()) {
+    const dataChecks: any = {};
+    let dataPassed = 0;
+    let dataFailed = 0;
+    
+    for (const key of DATA_KEYS) {
       try {
-        fs.readFileSync(filePath, 'utf8');
-      } catch (error) {
-        return { status: 'unhealthy', details: `Cannot read file: ${file}` };
+        const data = await kvGet<any[]>(key);
+        const exists = data !== null && data !== undefined;
+        const count = Array.isArray(data) ? data.length : (data ? 1 : 0);
+        
+        dataChecks[key] = {
+          exists,
+          count,
+          status: exists ? 'ok' : 'empty'
+        };
+        
+        if (exists) dataPassed++;
+        else dataFailed++;
+      } catch (error: any) {
+        dataChecks[key] = {
+          exists: false,
+          error: error.message,
+          status: 'error'
+        };
+        dataFailed++;
       }
     }
-
-    return { status: 'healthy' };
-  } catch (error) {
-    return { status: 'unhealthy', details: (error as Error).message };
+    
+    health.checks.data_in_redis = {
+      name: 'Données dans Redis',
+      status: dataFailed === 0 ? 'passed' : (dataPassed > 0 ? 'warning' : 'failed'),
+      message: `${dataPassed}/${DATA_KEYS.length} types de données trouvés dans Redis`,
+      details: dataChecks
+    };
+    health.summary.total++;
+    if (dataFailed === 0) health.summary.passed++;
+    else if (dataPassed > 0) health.summary.warnings++;
+    else health.summary.failed++;
   }
-}
 
-async function checkFilesystemHealth(): Promise<{ status: string; details?: string }> {
-  try {
-    const dataDir = path.join(process.cwd(), 'data');
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    
-    // Vérifier les permissions d'écriture
-    const testFile = path.join(dataDir, '.health-check');
-    fs.writeFileSync(testFile, 'health check');
-    fs.unlinkSync(testFile);
-    
-    // Vérifier le dossier uploads
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    
-    return { status: 'healthy' };
-  } catch (error) {
-    return { status: 'unhealthy', details: (error as Error).message };
-  }
+  // Déterminer le statut global
+  const allPassed = health.summary.failed === 0;
+  health.status = allPassed ? 'healthy' : (health.summary.failed > health.summary.passed ? 'unhealthy' : 'degraded');
+  
+  health.response_time_ms = Date.now() - startTime;
+
+  const statusCode = health.status === 'healthy' ? 200 : (health.status === 'degraded' ? 200 : 503);
+
+  return NextResponse.json(health, { status: statusCode });
 }
