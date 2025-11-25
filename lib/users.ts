@@ -1,4 +1,5 @@
 import { kv } from '@vercel/kv';
+import Redis from 'ioredis';
 import fs from 'fs';
 import path from 'path';
 import { AdminUser, PasswordResetToken } from './types';
@@ -8,9 +9,88 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const RESET_TOKENS_FILE = path.join(DATA_DIR, 'password-reset-tokens.json');
 
-// Clés pour Vercel KV
+// Clés pour Vercel KV / Redis
 const USERS_KEY = 'admin_users';
 const RESET_TOKENS_KEY = 'password_reset_tokens';
+
+// Client Redis pour REDIS_URL (format standard)
+let redisClient: Redis | null = null;
+
+function getRedisClient(): Redis | null {
+  if (process.env.REDIS_URL && !redisClient) {
+    try {
+      redisClient = new Redis(process.env.REDIS_URL, {
+        maxRetriesPerRequest: 3,
+        retryStrategy: (times) => {
+          const delay = Math.min(times * 50, 2000);
+          return delay;
+        },
+      });
+    } catch (error) {
+      console.error('Erreur lors de la création du client Redis:', error);
+      return null;
+    }
+  }
+  return redisClient;
+}
+
+// Wrapper pour les opérations KV qui supporte les deux formats
+async function kvGet<T>(key: string): Promise<T | null> {
+  // Format 1: REDIS_URL (format standard Redis avec ioredis)
+  if (process.env.REDIS_URL) {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        const value = await client.get(key);
+        return value ? JSON.parse(value) : null;
+      } catch (error) {
+        console.error(`Erreur lors de la lecture de ${key} depuis Redis:`, error);
+        return null;
+      }
+    }
+  }
+  
+  // Format 2: KV_REST_API_URL + KV_REST_API_TOKEN (format REST API Vercel KV)
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    try {
+      return await kv.get<T>(key);
+    } catch (error) {
+      console.error(`Erreur lors de la lecture de ${key} depuis Vercel KV:`, error);
+      return null;
+    }
+  }
+  
+  return null;
+}
+
+async function kvSet(key: string, value: any): Promise<void> {
+  // Format 1: REDIS_URL (format standard Redis avec ioredis)
+  if (process.env.REDIS_URL) {
+    const client = getRedisClient();
+    if (client) {
+      try {
+        await client.set(key, JSON.stringify(value));
+        return;
+      } catch (error) {
+        console.error(`Erreur lors de l'écriture de ${key} dans Redis:`, error);
+        throw error;
+      }
+    }
+  }
+  
+  // Format 2: KV_REST_API_URL + KV_REST_API_TOKEN (format REST API Vercel KV)
+  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    try {
+      await kv.set(key, value);
+      return;
+    } catch (error) {
+      console.error(`Erreur lors de l'écriture de ${key} dans Vercel KV:`, error);
+      throw error;
+    }
+  }
+  
+  throw new Error('Aucun client Redis configuré');
+}
 
 // Vérifier si on est sur Vercel
 function isVercel(): boolean {
@@ -47,16 +127,17 @@ function ensureDataDir() {
 export async function readUsers(): Promise<AdminUser[]> {
   if (isKvAvailable()) {
     try {
-      const users = await kv.get<AdminUser[]>(USERS_KEY);
-      console.log(`[readUsers] Lecture depuis KV: ${users ? users.length : 0} utilisateur(s)`);
+      const users = await kvGet<AdminUser[]>(USERS_KEY);
+      console.log(`[readUsers] Lecture depuis KV/Redis: ${users ? users.length : 0} utilisateur(s)`);
       return users || [];
     } catch (error) {
-      console.error('❌ Erreur lors de la lecture des utilisateurs depuis KV:', error);
+      console.error('❌ Erreur lors de la lecture des utilisateurs depuis KV/Redis:', error);
       // En pré-production, on veut voir l'erreur pour diagnostiquer
       if (process.env.VERCEL_ENV === 'preview' || process.env.NODE_ENV === 'development') {
-        console.error('Détails de l\'erreur KV:', {
+        console.error('Détails de l\'erreur KV/Redis:', {
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
+          REDIS_URL: process.env.REDIS_URL ? 'présent' : 'manquant',
           KV_REST_API_URL: process.env.KV_REST_API_URL ? 'présent' : 'manquant',
           KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN ? 'présent' : 'manquant'
         });
@@ -92,10 +173,10 @@ export async function readUsers(): Promise<AdminUser[]> {
 async function writeUsers(users: AdminUser[]): Promise<void> {
   if (isKvAvailable()) {
     try {
-      await kv.set(USERS_KEY, users);
+      await kvSet(USERS_KEY, users);
       return;
     } catch (error) {
-      console.error('Erreur lors de l\'écriture des utilisateurs dans KV:', error);
+      console.error('Erreur lors de l\'écriture des utilisateurs dans KV/Redis:', error);
       throw error;
     }
   }
@@ -124,10 +205,10 @@ async function writeUsers(users: AdminUser[]): Promise<void> {
 async function readResetTokens(): Promise<PasswordResetToken[]> {
   if (isKvAvailable()) {
     try {
-      const tokens = await kv.get<PasswordResetToken[]>(RESET_TOKENS_KEY);
+      const tokens = await kvGet<PasswordResetToken[]>(RESET_TOKENS_KEY);
       return tokens || [];
     } catch (error) {
-      console.error('Erreur lors de la lecture des tokens depuis KV:', error);
+      console.error('Erreur lors de la lecture des tokens depuis KV/Redis:', error);
       return [];
     }
   }
@@ -157,10 +238,10 @@ async function readResetTokens(): Promise<PasswordResetToken[]> {
 async function writeResetTokens(tokens: PasswordResetToken[]): Promise<void> {
   if (isKvAvailable()) {
     try {
-      await kv.set(RESET_TOKENS_KEY, tokens);
+      await kvSet(RESET_TOKENS_KEY, tokens);
       return;
     } catch (error) {
-      console.error('Erreur lors de l\'écriture des tokens dans KV:', error);
+      console.error('Erreur lors de l\'écriture des tokens dans KV/Redis:', error);
       throw error;
     }
   }
