@@ -95,7 +95,7 @@ let domainAnalysis: DomainAnalysis[] = [];
 let nextId = 1;
 
 // Fonction pour vérifier si on est sur Vercel
-function isVercel(): boolean {
+export function isVercel(): boolean {
   return !!process.env.VERCEL;
 }
 
