@@ -16,7 +16,20 @@ export async function GET(
     }
 
     const results = await getSessionResults(params.sessionId);
-    return NextResponse.json({ session, results });
+    
+    // Si les résultats existent, enrichir avec le nombre de participants (profils)
+    let enrichedResults = results;
+    if (results) {
+      const { getRespondentProfilesBySession } = await import('@/lib/json-database');
+      const profiles = await getRespondentProfilesBySession(params.sessionId);
+      // Le nombre de participants est le nombre de profils
+      enrichedResults = {
+        ...results,
+        total_responses: profiles.length // Nombre de participants (profils)
+      };
+    }
+    
+    return NextResponse.json({ session, results: enrichedResults });
   } catch (error) {
     console.error('Erreur lors de la récupération de la session:', error);
     return NextResponse.json(

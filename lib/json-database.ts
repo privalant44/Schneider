@@ -163,7 +163,7 @@ export async function kvGet<T>(key: string): Promise<T | null> {
   return null;
 }
 
-async function kvSet(key: string, value: any): Promise<void> {
+export async function kvSet(key: string, value: any): Promise<void> {
   // Format 1: REDIS_URL (format standard Redis avec ioredis)
   if (process.env.REDIS_URL) {
     const client = getRedisClient();
