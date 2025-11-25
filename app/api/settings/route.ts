@@ -29,7 +29,7 @@ export async function PUT(request: Request) {
   try {
     const { key, value } = await request.json();
     
-    setSetting(key, value);
+    await setSetting(key, value);
 
     return NextResponse.json({ success: true });
   } catch (error) {

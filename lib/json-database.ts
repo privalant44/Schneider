@@ -1845,7 +1845,7 @@ export function getAnalysisAxis(id: string): AnalysisAxis | null {
   return analysisAxes.find(axis => axis.id === id) || null;
 }
 
-export function addAnalysisAxis(axis: Omit<AnalysisAxis, 'id' | 'created_at'>): AnalysisAxis {
+export async function addAnalysisAxis(axis: Omit<AnalysisAxis, 'id' | 'created_at'>): Promise<AnalysisAxis> {
   const now = new Date().toISOString();
   const newAxis: AnalysisAxis = {
     ...axis,
@@ -1857,7 +1857,7 @@ export function addAnalysisAxis(axis: Omit<AnalysisAxis, 'id' | 'created_at'>): 
   return newAxis;
 }
 
-export function updateAnalysisAxis(id: string, axis: Partial<Omit<AnalysisAxis, 'id' | 'created_at'>>): AnalysisAxis | null {
+export async function updateAnalysisAxis(id: string, axis: Partial<Omit<AnalysisAxis, 'id' | 'created_at'>>): Promise<AnalysisAxis | null> {
   const index = analysisAxes.findIndex(a => a.id === id);
   if (index !== -1) {
     analysisAxes[index] = { ...analysisAxes[index], ...axis };
@@ -1867,7 +1867,7 @@ export function updateAnalysisAxis(id: string, axis: Partial<Omit<AnalysisAxis, 
   return null;
 }
 
-export function deleteAnalysisAxis(id: string): boolean {
+export async function deleteAnalysisAxis(id: string): Promise<boolean> {
   const index = analysisAxes.findIndex(a => a.id === id);
   if (index !== -1) {
     analysisAxes.splice(index, 1);
@@ -2132,7 +2132,7 @@ export function getSetting(key: string): string | undefined {
   return settings.find(s => s.key === key)?.value;
 }
 
-export function setSetting(key: string, value: string): void {
+export async function setSetting(key: string, value: string): Promise<void> {
   const existing = settings.find(s => s.key === key);
   if (existing) {
     existing.value = value;
@@ -2391,7 +2391,7 @@ export function getAllDomainAnalysis(): DomainAnalysis[] {
 (async () => {
   await loadAllData();
   await initDefaultData();
-  migrateSessionsWithFrozenAxes(); // Migration des axes figés
+  await migrateSessionsWithFrozenAxes(); // Migration des axes figés
   await saveAllData();
 })();
 

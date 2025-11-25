@@ -2,10 +2,15 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getSessionResults, getQuestionnaireSession } from '@/lib/json-database';
 
-// Initialiser OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialiser OpenAI de manière lazy pour éviter les erreurs au build
+function getOpenAIClient(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY n\'est pas configuré');
+  }
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -53,6 +58,7 @@ export async function POST(request: Request) {
     const prompt = createAnalysisPrompt(analysisData, analysisType);
 
     // Appeler ChatGPT
+    const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4',
       messages: [
