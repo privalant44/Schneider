@@ -22,8 +22,22 @@ export async function POST(request: NextRequest) {
     const user = await getUserByEmail(email);
     if (!user) {
       console.log('❌ Utilisateur non trouvé pour:', email);
+      
+      // En pré-production, donner plus de détails pour diagnostiquer
+      if (process.env.VERCEL_ENV === 'preview') {
+        console.log(`[DEBUG] KV configuré:`, !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN));
+        console.log(`[DEBUG] Email recherché:`, email);
+        console.log(`[DEBUG] Utilisez /api/auth/diagnostic pour plus de détails`);
+      }
+      
       return NextResponse.json(
-        { success: false, error: 'Email ou mot de passe incorrect' },
+        { 
+          success: false, 
+          error: 'Email ou mot de passe incorrect',
+          hint: process.env.VERCEL_ENV === 'preview' 
+            ? 'Vérifiez /api/auth/diagnostic pour diagnostiquer le problème'
+            : undefined
+        },
         { status: 401 }
       );
     }
@@ -86,11 +100,24 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Erreur lors de la connexion:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Message d'erreur spécifique pour Vercel KV non configuré
+    if (errorMessage.includes('Vercel KV non configuré')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Configuration manquante: Vercel KV non configuré. Veuillez créer une base de données Redis dans Vercel Dashboard → Storage.',
+          hint: 'Consultez VERCEL_KV_SETUP.md pour les instructions'
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
         error: 'Erreur lors de la connexion',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+        details: process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview' ? errorMessage : undefined
       },
       { status: 500 }
     );

@@ -12,6 +12,11 @@ const RESET_TOKENS_FILE = path.join(DATA_DIR, 'password-reset-tokens.json');
 const USERS_KEY = 'admin_users';
 const RESET_TOKENS_KEY = 'password_reset_tokens';
 
+// Vérifier si on est sur Vercel
+function isVercel(): boolean {
+  return !!process.env.VERCEL;
+}
+
 // Vérifier si Vercel KV est disponible
 function isKvAvailable(): boolean {
   return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
@@ -33,14 +38,32 @@ async function readUsers(): Promise<AdminUser[]> {
   if (isKvAvailable()) {
     try {
       const users = await kv.get<AdminUser[]>(USERS_KEY);
+      console.log(`[readUsers] Lecture depuis KV: ${users ? users.length : 0} utilisateur(s)`);
       return users || [];
     } catch (error) {
-      console.error('Erreur lors de la lecture des utilisateurs depuis KV:', error);
+      console.error('❌ Erreur lors de la lecture des utilisateurs depuis KV:', error);
+      // En pré-production, on veut voir l'erreur pour diagnostiquer
+      if (process.env.VERCEL_ENV === 'preview' || process.env.NODE_ENV === 'development') {
+        console.error('Détails de l\'erreur KV:', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          KV_REST_API_URL: process.env.KV_REST_API_URL ? 'présent' : 'manquant',
+          KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN ? 'présent' : 'manquant'
+        });
+      }
+      // Retourner un tableau vide pour éviter de casser l'application
+      // mais l'erreur sera visible dans les logs
       return [];
     }
   }
 
   // Fallback vers fichiers JSON pour développement local
+  // Sur Vercel sans KV, on ne peut pas utiliser les fichiers
+  if (isVercel() && !isKvAvailable()) {
+    console.error('⚠️ ERREUR: Vercel KV non configuré sur Vercel. Veuillez créer une base de données Redis.');
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+
   ensureDataDir();
   try {
     if (fs.existsSync(USERS_FILE)) {
@@ -68,6 +91,12 @@ async function writeUsers(users: AdminUser[]): Promise<void> {
   }
 
   // Fallback vers fichiers JSON pour développement local
+  // Sur Vercel sans KV, on ne peut pas utiliser les fichiers
+  if (isVercel() && !isKvAvailable()) {
+    console.error('⚠️ ERREUR: Vercel KV non configuré sur Vercel. Veuillez créer une base de données Redis.');
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+
   ensureDataDir();
   try {
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf8');
@@ -94,6 +123,12 @@ async function readResetTokens(): Promise<PasswordResetToken[]> {
   }
 
   // Fallback vers fichiers JSON pour développement local
+  // Sur Vercel sans KV, on ne peut pas utiliser les fichiers
+  if (isVercel() && !isKvAvailable()) {
+    console.error('⚠️ ERREUR: Vercel KV non configuré sur Vercel. Veuillez créer une base de données Upstash Redis.');
+    return [];
+  }
+
   ensureDataDir();
   try {
     if (fs.existsSync(RESET_TOKENS_FILE)) {
@@ -121,6 +156,12 @@ async function writeResetTokens(tokens: PasswordResetToken[]): Promise<void> {
   }
 
   // Fallback vers fichiers JSON pour développement local
+  // Sur Vercel sans KV, on ne peut pas utiliser les fichiers
+  if (isVercel() && !isKvAvailable()) {
+    console.error('⚠️ ERREUR: Vercel KV non configuré sur Vercel. Veuillez créer une base de données Redis.');
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+
   ensureDataDir();
   try {
     fs.writeFileSync(RESET_TOKENS_FILE, JSON.stringify(tokens, null, 2), 'utf8');
@@ -265,9 +306,18 @@ export async function markTokenAsUsed(tokenId: string): Promise<void> {
 
 /**
  * Initialise le super-admin si aucun utilisateur n'existe
+ * @returns {Promise<{created: boolean}>} Indique si le super-admin a été créé
  */
-export async function initializeSuperAdmin(): Promise<void> {
+export async function initializeSuperAdmin(): Promise<{created: boolean}> {
   const users = await readUsers();
+  
+  // Vérifier si le super-admin existe déjà
+  const superAdminExists = users.some(u => u.email === 'philippe.rivalant@animaneo.fr');
+  
+  if (superAdminExists) {
+    console.log('Super-admin existe déjà');
+    return { created: false };
+  }
   
   if (users.length === 0) {
     // Créer le super-admin initial
@@ -277,5 +327,8 @@ export async function initializeSuperAdmin(): Promise<void> {
       'super-admin'
     );
     console.log('Super-admin initial créé');
+    return { created: true };
   }
+  
+  return { created: false };
 }
