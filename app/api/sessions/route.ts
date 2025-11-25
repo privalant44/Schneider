@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     
     if (sessionId) {
       // Récupérer une session spécifique
-      const session = getQuestionnaireSession(sessionId);
+      const session = await getQuestionnaireSession(sessionId);
       if (session) {
         const results = await getSessionResults(sessionId);
         return NextResponse.json({ session, results });
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       }
     } else {
       // Récupérer toutes les sessions ou celles d'un client spécifique
-      const sessions = getQuestionnaireSessions(clientId || undefined);
+      const sessions = await getQuestionnaireSessions(clientId || undefined);
       return NextResponse.json(sessions, {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',

@@ -9,7 +9,7 @@ export async function GET() {
     const status = await getDatabaseStatus();
     const questions: Question[] = await getQuestions();
     const clients = await getClients();
-    const sessions = getQuestionnaireSessions();
+    const sessions = await getQuestionnaireSessions();
     const shortUrlDiagnostics = getShortUrlDiagnostics();
     
     return NextResponse.json({

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         data = await db.getClients();
         break;
       case 'sessions':
-        data = db.getQuestionnaireSessions();
+        data = await db.getQuestionnaireSessions();
         break;
       case 'questions':
         data = await db.getQuestions();

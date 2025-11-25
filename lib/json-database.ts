@@ -1097,7 +1097,22 @@ export async function deleteClient(id: string): Promise<boolean> {
 
 // ===== FONCTIONS POUR LA GESTION DES SESSIONS DE QUESTIONNAIRE =====
 
-export function getQuestionnaireSessions(clientId?: string): QuestionnaireSession[] {
+// Fonction pour recharger les sessions depuis Redis si nécessaire
+async function reloadSessionsIfNeeded(): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      // Recharger les sessions depuis Redis pour garantir la cohérence
+      questionnaireSessions = await readQuestionnaireSessions();
+    } catch (error) {
+      console.error('Erreur lors du rechargement des sessions depuis Redis:', error);
+      // Continuer avec les données en mémoire en cas d'erreur
+    }
+  }
+}
+
+export async function getQuestionnaireSessions(clientId?: string): Promise<QuestionnaireSession[]> {
+  // Recharger les sessions depuis Redis avant de lire pour garantir la cohérence
+  await reloadSessionsIfNeeded();
   let sessions = questionnaireSessions;
   if (clientId) {
     sessions = sessions.filter(s => s.client_id === clientId);
@@ -1105,7 +1120,23 @@ export function getQuestionnaireSessions(clientId?: string): QuestionnaireSessio
   return sessions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
-export function getQuestionnaireSession(id: string): QuestionnaireSession | null {
+// Version synchrone pour compatibilité (dépréciée, utiliser la version async)
+export function getQuestionnaireSessionsSync(clientId?: string): QuestionnaireSession[] {
+  let sessions = questionnaireSessions;
+  if (clientId) {
+    sessions = sessions.filter(s => s.client_id === clientId);
+  }
+  return sessions.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+export async function getQuestionnaireSession(id: string): Promise<QuestionnaireSession | null> {
+  // Recharger les sessions depuis Redis avant de lire pour garantir la cohérence
+  await reloadSessionsIfNeeded();
+  return questionnaireSessions.find(s => s.id === id) || null;
+}
+
+// Version synchrone pour compatibilité (dépréciée, utiliser la version async)
+export function getQuestionnaireSessionSync(id: string): QuestionnaireSession | null {
   return questionnaireSessions.find(s => s.id === id) || null;
 }
 

@@ -19,8 +19,8 @@ export async function POST(request: Request) {
     }
 
     // Récupérer les données des sessions
-    const session1 = getQuestionnaireSession(session1Id);
-    const session2 = getQuestionnaireSession(session2Id);
+    const session1 = await getQuestionnaireSession(session1Id);
+    const session2 = await getQuestionnaireSession(session2Id);
     const results1 = await getSessionResults(session1Id);
     const results2 = await getSessionResults(session2Id);
 

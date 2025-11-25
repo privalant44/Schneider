@@ -38,11 +38,11 @@ export async function GET(request: Request) {
       } catch (error) {
         console.error('Erreur lors du chargement depuis Redis, utilisation des données en mémoire:', error);
         // Fallback sur les données en mémoire
-        allSessions = getQuestionnaireSessions();
+        allSessions = await getQuestionnaireSessions();
       }
     } else {
       // Utiliser les données en mémoire
-      allSessions = getQuestionnaireSessions();
+      allSessions = await getQuestionnaireSessions();
     }
     
     // Filtrer les sessions

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     }
     
     // Vérifier en mémoire
-    memorySessions = getQuestionnaireSessions();
+    memorySessions = await getQuestionnaireSessions();
     
     return NextResponse.json({
       kv_available: kvAvailable,

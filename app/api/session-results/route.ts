@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     }
     
     // Récupérer les informations de la session
-    const session = getQuestionnaireSession(sessionId);
+    const session = await getQuestionnaireSession(sessionId);
     
     return NextResponse.json({
       session: session,

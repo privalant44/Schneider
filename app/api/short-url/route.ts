@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     }
     
     // Trouver la session par son URL courte
-    const sessions = getQuestionnaireSessions();
+    const sessions = await getQuestionnaireSessions();
     const session = sessions.find((s: any) => s.short_url === shortUrl);
     
     if (session) {

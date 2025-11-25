@@ -7,7 +7,7 @@ export async function GET(
   try {
     const { getQuestionnaireSession, getSessionResults } = await import('@/lib/json-database');
     
-    const session = getQuestionnaireSession(params.sessionId);
+    const session = await getQuestionnaireSession(params.sessionId);
     if (!session) {
       return NextResponse.json(
         { error: 'Session non trouvée' },
