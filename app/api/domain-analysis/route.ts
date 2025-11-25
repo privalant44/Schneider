@@ -15,6 +15,7 @@ export async function GET(request: Request) {
       let analysis: DomainAnalysis[] = getDomainAnalysis(sessionId);
       
       if (recalculate || analysis.length === 0) {
+        // Recalculer et sauvegarder l'analyse
         analysis = await saveDomainAnalysis(sessionId);
       }
       
