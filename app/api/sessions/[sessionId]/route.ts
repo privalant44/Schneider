@@ -34,7 +34,7 @@ export async function PUT(
     const { updateQuestionnaireSession } = await import('@/lib/json-database');
     const body = await request.json();
     
-    const updatedSession = updateQuestionnaireSession(params.sessionId, body);
+    const updatedSession = await updateQuestionnaireSession(params.sessionId, body);
     
     if (updatedSession) {
       return NextResponse.json(updatedSession);
