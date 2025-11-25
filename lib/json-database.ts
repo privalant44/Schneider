@@ -28,9 +28,11 @@ const QUESTIONS_FILE = path.join(DATA_DIR, 'questions.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const DOMAIN_ANALYSIS_FILE = path.join(DATA_DIR, 'domain-analysis.json');
 
-// Clés Vercel KV
+// Clés Vercel KV / Redis
 const QUESTIONS_KEY = 'questions';
 const NEXT_QUESTION_ID_KEY = 'next_question_id';
+const CLIENT_ANALYSIS_AXES_KEY = 'client_analysis_axes';
+const CLIENT_SPECIFIC_AXES_KEY = 'client_specific_axes';
 
 // Interface pour les questions (compatible avec l'ancien système)
 interface Question {
@@ -221,8 +223,22 @@ async function loadAllData() {
   sessionResponses = readJsonFile(SESSION_RESPONSES_FILE, []);
   sessionResults = readJsonFile(SESSION_RESULTS_FILE, []);
   analysisAxes = readJsonFile(ANALYSIS_AXES_FILE, []);
-  clientAnalysisAxes = readJsonFile(CLIENT_ANALYSIS_AXES_FILE, []);
-  clientSpecificAxes = readJsonFile(CLIENT_SPECIFIC_AXES_FILE, []);
+  
+  // Charger les axes d'analyse par client depuis KV si disponible, sinon depuis le fichier
+  try {
+    clientAnalysisAxes = await readClientAnalysisAxes();
+  } catch (error) {
+    console.error('Erreur lors du chargement des axes d\'analyse par client:', error);
+    clientAnalysisAxes = readJsonFile(CLIENT_ANALYSIS_AXES_FILE, []);
+  }
+  
+  // Charger les axes spécifiques par client depuis KV si disponible, sinon depuis le fichier
+  try {
+    clientSpecificAxes = await readClientSpecificAxes();
+  } catch (error) {
+    console.error('Erreur lors du chargement des axes spécifiques par client:', error);
+    clientSpecificAxes = readJsonFile(CLIENT_SPECIFIC_AXES_FILE, []);
+  }
   
   // Charger les questions depuis KV si disponible, sinon depuis le fichier
   try {
@@ -254,11 +270,125 @@ function saveAllData() {
   writeJsonFile(SESSION_RESPONSES_FILE, sessionResponses);
   writeJsonFile(SESSION_RESULTS_FILE, sessionResults);
   writeJsonFile(ANALYSIS_AXES_FILE, analysisAxes);
-  writeJsonFile(CLIENT_ANALYSIS_AXES_FILE, clientAnalysisAxes);
-  writeJsonFile(CLIENT_SPECIFIC_AXES_FILE, clientSpecificAxes);
+  // Les axes par client sont sauvegardés dans KV/Redis, pas dans les fichiers
+  writeJsonFile(CLIENT_ANALYSIS_AXES_FILE, clientAnalysisAxes); // Fallback local
+  writeJsonFile(CLIENT_SPECIFIC_AXES_FILE, clientSpecificAxes); // Fallback local
   writeJsonFile(QUESTIONS_FILE, questions);
   writeJsonFile(SETTINGS_FILE, settings);
   writeJsonFile(DOMAIN_ANALYSIS_FILE, domainAnalysis);
+  
+  // Sauvegarder les axes par client dans KV/Redis si disponible
+  if (isKvAvailable()) {
+    writeClientAnalysisAxes(clientAnalysisAxes).catch(err => {
+      console.error('Erreur lors de la sauvegarde des axes d\'analyse par client dans KV:', err);
+    });
+    writeClientSpecificAxes(clientSpecificAxes).catch(err => {
+      console.error('Erreur lors de la sauvegarde des axes spécifiques par client dans KV:', err);
+    });
+  }
+}
+
+// Fonctions pour lire/écrire les axes d'analyse par client depuis KV/Redis
+async function readClientAnalysisAxes(): Promise<ClientAnalysisAxis[]> {
+  if (isKvAvailable()) {
+    try {
+      const axes = await kvGet<ClientAnalysisAxis[]>(CLIENT_ANALYSIS_AXES_KEY);
+      return axes || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des axes d\'analyse par client depuis KV/Redis:', error);
+      return [];
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    if (fs.existsSync(CLIENT_ANALYSIS_AXES_FILE)) {
+      const data = fs.readFileSync(CLIENT_ANALYSIS_AXES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des axes d\'analyse par client:', error);
+  }
+  return [];
+}
+
+async function writeClientAnalysisAxes(axes: ClientAnalysisAxis[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kvSet(CLIENT_ANALYSIS_AXES_KEY, axes);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des axes d\'analyse par client dans KV/Redis:', error);
+      throw error;
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    fs.writeFileSync(CLIENT_ANALYSIS_AXES_FILE, JSON.stringify(axes, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des axes d\'analyse par client:', error);
+    throw error;
+  }
+}
+
+async function readClientSpecificAxes(): Promise<ClientSpecificAxis[]> {
+  if (isKvAvailable()) {
+    try {
+      const axes = await kvGet<ClientSpecificAxis[]>(CLIENT_SPECIFIC_AXES_KEY);
+      return axes || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des axes spécifiques par client depuis KV/Redis:', error);
+      return [];
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    if (fs.existsSync(CLIENT_SPECIFIC_AXES_FILE)) {
+      const data = fs.readFileSync(CLIENT_SPECIFIC_AXES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des axes spécifiques par client:', error);
+  }
+  return [];
+}
+
+async function writeClientSpecificAxes(axes: ClientSpecificAxis[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kvSet(CLIENT_SPECIFIC_AXES_KEY, axes);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des axes spécifiques par client dans KV/Redis:', error);
+      throw error;
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    fs.writeFileSync(CLIENT_SPECIFIC_AXES_FILE, JSON.stringify(axes, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des axes spécifiques par client:', error);
+    throw error;
+  }
 }
 
 // Initialiser les données par défaut si nécessaire
@@ -1029,7 +1159,7 @@ export function getEnabledAnalysisAxesForClient(clientId: string): AnalysisAxis[
     });
 }
 
-export function setClientAnalysisAxes(clientId: string, axisIds: string[]): void {
+export async function setClientAnalysisAxes(clientId: string, axisIds: string[]): Promise<void> {
   // Supprimer les anciennes associations
   clientAnalysisAxes = clientAnalysisAxes.filter(ca => ca.client_id !== clientId);
   
@@ -1045,11 +1175,20 @@ export function setClientAnalysisAxes(clientId: string, axisIds: string[]): void
     });
   });
   
+  // Sauvegarder dans KV/Redis si disponible
+  if (isKvAvailable()) {
+    await writeClientAnalysisAxes(clientAnalysisAxes);
+  }
   saveAllData();
 }
 
-export function deleteClientAnalysisAxes(clientId: string): void {
+export async function deleteClientAnalysisAxes(clientId: string): Promise<void> {
   clientAnalysisAxes = clientAnalysisAxes.filter(ca => ca.client_id !== clientId);
+  
+  // Sauvegarder dans KV/Redis si disponible
+  if (isKvAvailable()) {
+    await writeClientAnalysisAxes(clientAnalysisAxes);
+  }
   saveAllData();
 }
 
@@ -1069,7 +1208,7 @@ export function getClientSpecificAxis(id: string): ClientSpecificAxis | null {
   return clientSpecificAxes.find(axis => axis.id === id) || null;
 }
 
-export function addClientAnalysisAxis(axis: Omit<ClientSpecificAxis, 'id' | 'created_at'>): ClientSpecificAxis {
+export async function addClientAnalysisAxis(axis: Omit<ClientSpecificAxis, 'id' | 'created_at'>): Promise<ClientSpecificAxis> {
   const now = new Date().toISOString();
   const newAxis: ClientSpecificAxis = {
     ...axis,
@@ -1077,24 +1216,39 @@ export function addClientAnalysisAxis(axis: Omit<ClientSpecificAxis, 'id' | 'cre
     created_at: now
   };
   clientSpecificAxes.push(newAxis);
+  
+  // Sauvegarder dans KV/Redis si disponible
+  if (isKvAvailable()) {
+    await writeClientSpecificAxes(clientSpecificAxes);
+  }
   saveAllData();
   return newAxis;
 }
 
-export function updateClientAnalysisAxis(id: string, axis: Partial<Omit<ClientSpecificAxis, 'id' | 'created_at' | 'client_id'>>): ClientSpecificAxis | null {
+export async function updateClientAnalysisAxis(id: string, axis: Partial<Omit<ClientSpecificAxis, 'id' | 'created_at' | 'client_id'>>): Promise<ClientSpecificAxis | null> {
   const index = clientSpecificAxes.findIndex(a => a.id === id);
   if (index !== -1) {
     clientSpecificAxes[index] = { ...clientSpecificAxes[index], ...axis };
+    
+    // Sauvegarder dans KV/Redis si disponible
+    if (isKvAvailable()) {
+      await writeClientSpecificAxes(clientSpecificAxes);
+    }
     saveAllData();
     return clientSpecificAxes[index];
   }
   return null;
 }
 
-export function deleteClientAnalysisAxis(id: string): boolean {
+export async function deleteClientAnalysisAxis(id: string): Promise<boolean> {
   const index = clientSpecificAxes.findIndex(a => a.id === id);
   if (index !== -1) {
     clientSpecificAxes.splice(index, 1);
+    
+    // Sauvegarder dans KV/Redis si disponible
+    if (isKvAvailable()) {
+      await writeClientSpecificAxes(clientSpecificAxes);
+    }
     saveAllData();
     return true;
   }

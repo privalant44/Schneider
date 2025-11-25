@@ -86,7 +86,7 @@ export async function PUT(request: Request) {
     }
     
     const { updateClientAnalysisAxis } = await import('@/lib/json-database');
-    const updatedAxis = updateClientAnalysisAxis(id, {
+    const updatedAxis = await updateClientAnalysisAxis(id, {
       name,
       type,
       options,
@@ -126,7 +126,7 @@ export async function DELETE(request: Request) {
     }
 
     const { deleteClientAnalysisAxis } = await import('@/lib/json-database');
-    const success = deleteClientAnalysisAxis(id);
+    const success = await deleteClientAnalysisAxis(id);
     
     if (success) {
       return NextResponse.json({ success: true });
