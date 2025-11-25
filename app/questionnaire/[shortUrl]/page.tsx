@@ -42,31 +42,10 @@ export default function QuestionnaireShortUrlPage({ params }: { params: { shortU
       
       const sessionData = await sessionResponse.json();
       console.log('Données de session reçues:', sessionData);
+      
+      // La validation est maintenant faite côté serveur dans /api/short-url
+      // Si on arrive ici, la session est valide
       setSession(sessionData);
-
-      // Vérifier si la session est active
-      if (!sessionData.isActive) {
-        setError('Cette session de questionnaire n\'est plus active');
-        setLoading(false);
-        return;
-      }
-
-      // Vérifier les dates
-      const now = new Date();
-      const startDate = new Date(sessionData.startDate);
-      const endDate = sessionData.endDate ? new Date(sessionData.endDate) : null;
-
-      if (now < startDate) {
-        setError('Cette session de questionnaire n\'a pas encore commencé');
-        setLoading(false);
-        return;
-      }
-
-      if (endDate && now > endDate) {
-        setError('Cette session de questionnaire est terminée');
-        setLoading(false);
-        return;
-      }
 
       // Récupérer les données du client
       const clientResponse = await fetch(`/api/clients`);

@@ -1260,19 +1260,39 @@ export async function createQuestionnaireSession(sessionData: Omit<Questionnaire
   return newSession;
 }
 
-export async function updateQuestionnaireSession(id: string, sessionData: Partial<Omit<QuestionnaireSession, 'id' | 'created_at'>>): Promise<QuestionnaireSession | null> {
+export async function updateQuestionnaireSession(id: string, sessionData: Partial<Omit<QuestionnaireSession, 'id' | 'created_at' | 'short_url' | 'frozen_analysis_axes'>>): Promise<QuestionnaireSession | null> {
+  // Recharger les sessions depuis Redis avant de modifier pour garantir la cohérence
+  await reloadSessionsIfNeeded();
+  
   const index = questionnaireSessions.findIndex(s => s.id === id);
   if (index !== -1) {
+    // Préserver short_url et frozen_analysis_axes lors de la mise à jour
+    const existingSession = questionnaireSessions[index];
     questionnaireSessions[index] = { 
-      ...questionnaireSessions[index], 
+      ...existingSession,
       ...sessionData, 
+      short_url: existingSession.short_url, // Toujours préserver l'URL courte
+      frozen_analysis_axes: existingSession.frozen_analysis_axes, // Toujours préserver les axes figés
       updated_at: new Date().toISOString() 
     };
     
-    // Sauvegarder dans KV/Redis si disponible
-    if (isKvAvailable()) {
-      await writeQuestionnaireSessions(questionnaireSessions);
+    // Sauvegarder dans KV/Redis si disponible (TOUJOURS sur Vercel)
+    try {
+      if (isKvAvailable()) {
+        await writeQuestionnaireSessions(questionnaireSessions);
+        console.log(`Session mise à jour et sauvegardée dans Redis: ${id}`);
+      } else if (isVercel()) {
+        throw new Error('Vercel KV non configuré. Impossible de sauvegarder la session.');
+      } else {
+        await writeQuestionnaireSessions(questionnaireSessions);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la session:', error);
+      // Restaurer l'ancienne valeur en cas d'erreur
+      questionnaireSessions[index] = existingSession;
+      throw error;
     }
+    
     saveAllData();
     return questionnaireSessions[index];
   }
