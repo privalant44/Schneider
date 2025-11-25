@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { kv } from '@vercel/kv';
-import Redis from 'ioredis';
+import { kvGet, kvSet, isKvAvailable as isKvAvailableFromManager } from './redis-manager';
 import { 
   Client, 
   QuestionnaireSession, 
@@ -99,98 +98,8 @@ export function isVercel(): boolean {
   return !!process.env.VERCEL;
 }
 
-// Fonction pour vérifier si Vercel KV est disponible
-// Supporte deux formats : REDIS_URL (format standard) ou KV_REST_API_URL + KV_REST_API_TOKEN (format REST API)
-export function isKvAvailable(): boolean {
-  // Format 1: REDIS_URL (format standard Redis)
-  if (process.env.REDIS_URL) {
-    return true;
-  }
-  // Format 2: KV_REST_API_URL + KV_REST_API_TOKEN (format REST API Vercel KV)
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    return true;
-  }
-  return false;
-}
-
-// Client Redis pour REDIS_URL (format standard)
-let redisClient: Redis | null = null;
-
-function getRedisClient(): Redis | null {
-  if (process.env.REDIS_URL && !redisClient) {
-    try {
-      redisClient = new Redis(process.env.REDIS_URL, {
-        maxRetriesPerRequest: 3,
-        retryStrategy: (times) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        },
-      });
-    } catch (error) {
-      console.error('Erreur lors de la création du client Redis:', error);
-      return null;
-    }
-  }
-  return redisClient;
-}
-
-// Wrapper pour les opérations KV qui supporte les deux formats
-export async function kvGet<T>(key: string): Promise<T | null> {
-  // Format 1: REDIS_URL (format standard Redis avec ioredis)
-  if (process.env.REDIS_URL) {
-    const client = getRedisClient();
-    if (client) {
-      try {
-        const value = await client.get(key);
-        return value ? JSON.parse(value) : null;
-      } catch (error) {
-        console.error(`Erreur lors de la lecture de ${key} depuis Redis:`, error);
-        return null;
-      }
-    }
-  }
-  
-  // Format 2: KV_REST_API_URL + KV_REST_API_TOKEN (format REST API Vercel KV)
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    try {
-      return await kv.get<T>(key);
-    } catch (error) {
-      console.error(`Erreur lors de la lecture de ${key} depuis Vercel KV:`, error);
-      return null;
-    }
-  }
-  
-  return null;
-}
-
-export async function kvSet(key: string, value: any): Promise<void> {
-  // Format 1: REDIS_URL (format standard Redis avec ioredis)
-  if (process.env.REDIS_URL) {
-    const client = getRedisClient();
-    if (client) {
-      try {
-        await client.set(key, JSON.stringify(value));
-        return;
-      } catch (error) {
-        console.error(`Erreur lors de l'écriture de ${key} dans Redis:`, error);
-        throw error;
-      }
-    }
-  }
-  
-  // Format 2: KV_REST_API_URL + KV_REST_API_TOKEN (format REST API Vercel KV)
-  if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-    try {
-      await kv.set(key, value);
-      return;
-    } catch (error) {
-      console.error(`Erreur lors de l'écriture de ${key} dans Vercel KV:`, error);
-      throw error;
-    }
-  }
-  
-  throw new Error('Aucun client Redis configuré');
-}
+// Réexporter les fonctions du gestionnaire Redis
+export { kvGet, kvSet, isKvAvailableFromManager as isKvAvailable } from './redis-manager';
 
 // Fonction pour s'assurer que le dossier data existe
 function ensureDataDir() {
