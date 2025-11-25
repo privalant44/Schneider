@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { ClientSpecificAxis } from '@/lib/types';
 
 export async function GET(request: Request) {
   try {
@@ -45,7 +46,6 @@ export async function POST(request: Request) {
     }
     
     const { addClientAnalysisAxis } = await import('@/lib/json-database');
-    const { ClientSpecificAxis } = await import('@/lib/types');
     const newAxis: ClientSpecificAxis = await addClientAnalysisAxis({
       name,
       type,
