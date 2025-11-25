@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const requestData = await request.json();
-    console.log('Données reçues pour respondent-profiles:', requestData);
+    console.log('Données reçues pour respondent-profiles (PUBLIC - pas d\'auth requise):', requestData);
     
     const { 
       session_id, 

@@ -4,10 +4,15 @@ import { Question } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
+// Route publique - pas d'authentification requise pour la lecture
 export async function GET() {
   try {
     const questions = await getQuestions();
-    return NextResponse.json(questions);
+    return NextResponse.json(questions, {
+      headers: {
+        'Cache-Control': 'public, max-age=3600',
+      }
+    });
   } catch (error) {
     console.error('Erreur lors de la récupération des questions:', error);
     return NextResponse.json(

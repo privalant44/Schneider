@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 import { getQuestionnaireSessions } from '@/lib/json-database';
 
 export const dynamic = "force-dynamic"
+
+// Route publique - pas d'authentification requise
 export async function GET(request: Request) {
   try {
+    console.log('GET /api/short-url (PUBLIC - pas d\'auth requise)');
     const { searchParams } = new URL(request.url);
     const shortUrl = searchParams.get('shortUrl');
     

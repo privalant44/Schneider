@@ -13,6 +13,7 @@ import {
 
 export async function POST(request: Request) {
   try {
+    console.log('POST /api/responses (PUBLIC - pas d\'auth requise)');
     const { sessionId, answers, respondentData } = await request.json();
     
     if (!sessionId || !answers || !Array.isArray(answers)) {

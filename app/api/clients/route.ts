@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getClients, createClient, updateClient, deleteClient } from '@/lib/json-database';
 
+// Route publique - pas d'authentification requise pour la lecture
 export async function GET() {
   try {
     const clients = await getClients();
-    return NextResponse.json(clients);
+    return NextResponse.json(clients, {
+      headers: {
+        'Cache-Control': 'public, max-age=3600',
+      }
+    });
   } catch (error) {
     console.error('Erreur lors de la récupération des clients:', error);
     return NextResponse.json(

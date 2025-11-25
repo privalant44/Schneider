@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSettings, setSetting } from '@/lib/json-database';
 
+// Route publique - pas d'authentification requise pour la lecture
 export async function GET() {
   try {
     const settings = getSettings();
@@ -10,7 +11,11 @@ export async function GET() {
       return acc;
     }, {} as Record<string, string>);
 
-    return NextResponse.json(settingsObj);
+    return NextResponse.json(settingsObj, {
+      headers: {
+        'Cache-Control': 'public, max-age=3600',
+      }
+    });
   } catch (error) {
     console.error('Erreur lors de la récupération des paramètres:', error);
     return NextResponse.json(
