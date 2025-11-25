@@ -502,6 +502,7 @@ async function writeRespondentProfiles(profiles: RespondentProfile[]): Promise<v
   if (isKvAvailable()) {
     try {
       await kvSet(RESPONDENT_PROFILES_KEY, profiles);
+      console.log(`Profils de répondants sauvegardés dans Redis: ${profiles.length} profil(s)`);
       return;
     } catch (error) {
       console.error('Erreur lors de l\'écriture des profils de répondants dans KV/Redis:', error);
@@ -516,6 +517,7 @@ async function writeRespondentProfiles(profiles: RespondentProfile[]): Promise<v
   ensureDataDir();
   try {
     fs.writeFileSync(RESPONDENT_PROFILES_FILE, JSON.stringify(profiles, null, 2), 'utf8');
+    console.log(`Profils de répondants sauvegardés dans fichier: ${profiles.length} profil(s)`);
   } catch (error) {
     console.error('Erreur lors de l\'écriture des profils de répondants:', error);
     throw error;
@@ -1252,7 +1254,7 @@ export async function deleteQuestionnaireSession(id: string): Promise<boolean> {
 
 // ===== FONCTIONS POUR LA GESTION DES PROFILS DE RÉPONDANTS =====
 
-export function createRespondentProfile(profileData: Omit<RespondentProfile, 'id' | 'created_at'>): RespondentProfile {
+export async function createRespondentProfile(profileData: Omit<RespondentProfile, 'id' | 'created_at'>): Promise<RespondentProfile> {
   const now = new Date().toISOString();
   const newProfile: RespondentProfile = {
     ...profileData,
@@ -1260,6 +1262,29 @@ export function createRespondentProfile(profileData: Omit<RespondentProfile, 'id
     created_at: now
   };
   respondentProfiles.push(newProfile);
+  
+  // Sauvegarder dans KV/Redis si disponible (TOUJOURS sur Vercel)
+  try {
+    if (isKvAvailable()) {
+      await writeRespondentProfiles(respondentProfiles);
+      console.log(`Profil de répondant créé et sauvegardé dans Redis: ${newProfile.id} pour session ${newProfile.session_id}`);
+    } else if (isVercel()) {
+      // Sur Vercel, on DOIT avoir Redis/KV
+      throw new Error('Vercel KV non configuré. Impossible de sauvegarder le profil de répondant.');
+    } else {
+      // En local, sauvegarder dans le fichier
+      await writeRespondentProfiles(respondentProfiles);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde du profil de répondant:', error);
+    // Retirer le profil de la liste en mémoire si la sauvegarde a échoué
+    const index = respondentProfiles.findIndex(p => p.id === newProfile.id);
+    if (index !== -1) {
+      respondentProfiles.splice(index, 1);
+    }
+    throw error;
+  }
+  
   saveAllData();
   return newProfile;
 }
