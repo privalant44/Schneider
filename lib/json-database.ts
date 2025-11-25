@@ -36,6 +36,10 @@ const CLIENT_SPECIFIC_AXES_KEY = 'client_specific_axes';
 const SESSION_RESPONSES_KEY = 'session_responses';
 const RESPONDENT_PROFILES_KEY = 'respondent_profiles';
 const SESSION_RESULTS_KEY = 'session_results';
+const CLIENTS_KEY = 'clients';
+const QUESTIONNAIRE_SESSIONS_KEY = 'questionnaire_sessions';
+const ANALYSIS_AXES_KEY = 'analysis_axes';
+const SETTINGS_KEY = 'settings';
 
 // Interface pour les questions (compatible avec l'ancien système)
 interface Question {
@@ -220,15 +224,28 @@ function writeJsonFile<T>(filePath: string, data: T[]): void {
 
 // Fonction pour charger toutes les données
 async function loadAllData() {
-  clients = readJsonFile(CLIENTS_FILE, []);
-  questionnaireSessions = readJsonFile(SESSIONS_FILE, []);
+  // Charger les clients depuis KV si disponible, sinon depuis le fichier
+  try {
+    clients = await readClients();
+  } catch (error) {
+    console.error('Erreur lors du chargement des clients:', error);
+    clients = readJsonFile(CLIENTS_FILE, []);
+  }
+  
+  // Charger les sessions de questionnaire depuis KV si disponible, sinon depuis le fichier
+  try {
+    questionnaireSessions = await readQuestionnaireSessions();
+  } catch (error) {
+    console.error('Erreur lors du chargement des sessions de questionnaire:', error);
+    questionnaireSessions = readJsonFile(SESSIONS_FILE, []);
+  }
   
   // Charger les profils de répondants depuis KV si disponible, sinon depuis le fichier
   try {
     respondentProfiles = await readRespondentProfiles();
   } catch (error) {
     console.error('Erreur lors du chargement des profils de répondants:', error);
-    respondentProfiles = readJsonFile(RESPONDENT_PROFILES_FILE, []);
+  respondentProfiles = readJsonFile(RESPONDENT_PROFILES_FILE, []);
   }
   
   // Charger les réponses de session depuis KV si disponible, sinon depuis le fichier
@@ -236,7 +253,7 @@ async function loadAllData() {
     sessionResponses = await readSessionResponses();
   } catch (error) {
     console.error('Erreur lors du chargement des réponses de session:', error);
-    sessionResponses = readJsonFile(SESSION_RESPONSES_FILE, []);
+  sessionResponses = readJsonFile(SESSION_RESPONSES_FILE, []);
   }
   
   // Charger les résultats de session depuis KV si disponible, sinon depuis le fichier
@@ -244,17 +261,15 @@ async function loadAllData() {
     sessionResults = await readSessionResults();
   } catch (error) {
     console.error('Erreur lors du chargement des résultats de session:', error);
-    sessionResults = readJsonFile(SESSION_RESULTS_FILE, []);
+  sessionResults = readJsonFile(SESSION_RESULTS_FILE, []);
   }
-  
-  analysisAxes = readJsonFile(ANALYSIS_AXES_FILE, []);
   
   // Charger les axes d'analyse par client depuis KV si disponible, sinon depuis le fichier
   try {
     clientAnalysisAxes = await readClientAnalysisAxes();
   } catch (error) {
     console.error('Erreur lors du chargement des axes d\'analyse par client:', error);
-    clientAnalysisAxes = readJsonFile(CLIENT_ANALYSIS_AXES_FILE, []);
+  clientAnalysisAxes = readJsonFile(CLIENT_ANALYSIS_AXES_FILE, []);
   }
   
   // Charger les axes spécifiques par client depuis KV si disponible, sinon depuis le fichier
@@ -262,7 +277,7 @@ async function loadAllData() {
     clientSpecificAxes = await readClientSpecificAxes();
   } catch (error) {
     console.error('Erreur lors du chargement des axes spécifiques par client:', error);
-    clientSpecificAxes = readJsonFile(CLIENT_SPECIFIC_AXES_FILE, []);
+  clientSpecificAxes = readJsonFile(CLIENT_SPECIFIC_AXES_FILE, []);
   }
   
   // Charger les questions depuis KV si disponible, sinon depuis le fichier
@@ -273,7 +288,22 @@ async function loadAllData() {
     questions = readJsonFile(QUESTIONS_FILE, []);
   }
   
-  settings = readJsonFile(SETTINGS_FILE, []);
+  // Charger les axes d'analyse depuis KV si disponible, sinon depuis le fichier
+  try {
+    analysisAxes = await readAnalysisAxes();
+  } catch (error) {
+    console.error('Erreur lors du chargement des axes d\'analyse:', error);
+    analysisAxes = readJsonFile(ANALYSIS_AXES_FILE, []);
+  }
+  
+  // Charger les paramètres depuis KV si disponible, sinon depuis le fichier
+  try {
+    settings = await readSettings();
+  } catch (error) {
+    console.error('Erreur lors du chargement des paramètres:', error);
+    settings = readJsonFile(SETTINGS_FILE, []);
+  }
+  
   domainAnalysis = readJsonFile(DOMAIN_ANALYSIS_FILE, []);
   
   // Calculer le prochain ID
@@ -302,8 +332,29 @@ function saveAllData() {
   writeJsonFile(SETTINGS_FILE, settings);
   writeJsonFile(DOMAIN_ANALYSIS_FILE, domainAnalysis);
   
-  // Sauvegarder les axes par client dans KV/Redis si disponible
+  // Sauvegarder toutes les données dans KV/Redis si disponible
   if (isKvAvailable()) {
+    writeClients(clients).catch(err => {
+      console.error('Erreur lors de la sauvegarde des clients dans KV:', err);
+    });
+    writeQuestionnaireSessions(questionnaireSessions).catch(err => {
+      console.error('Erreur lors de la sauvegarde des sessions de questionnaire dans KV:', err);
+    });
+    writeRespondentProfiles(respondentProfiles).catch(err => {
+      console.error('Erreur lors de la sauvegarde des profils de répondants dans KV:', err);
+    });
+    writeSessionResponses(sessionResponses).catch(err => {
+      console.error('Erreur lors de la sauvegarde des réponses de session dans KV:', err);
+    });
+    writeSessionResults(sessionResults).catch(err => {
+      console.error('Erreur lors de la sauvegarde des résultats de session dans KV:', err);
+    });
+    writeAnalysisAxes(analysisAxes).catch(err => {
+      console.error('Erreur lors de la sauvegarde des axes d\'analyse dans KV:', err);
+    });
+    writeSettings(settings).catch(err => {
+      console.error('Erreur lors de la sauvegarde des paramètres dans KV:', err);
+    });
     writeClientAnalysisAxes(clientAnalysisAxes).catch(err => {
       console.error('Erreur lors de la sauvegarde des axes d\'analyse par client dans KV:', err);
     });
@@ -575,6 +626,218 @@ async function writeSessionResults(results: SessionResults[]): Promise<void> {
   }
 }
 
+// ===== FONCTIONS POUR LA GESTION DES CLIENTS (AVEC REDIS/KV) =====
+
+async function readClients(): Promise<Client[]> {
+  if (isKvAvailable()) {
+    try {
+      const clientsData = await kvGet<Client[]>(CLIENTS_KEY);
+      return clientsData || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des clients depuis KV/Redis:', error);
+      return [];
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    if (fs.existsSync(CLIENTS_FILE)) {
+      const data = fs.readFileSync(CLIENTS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des clients:', error);
+  }
+  return [];
+}
+
+async function writeClients(clientsData: Client[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kvSet(CLIENTS_KEY, clientsData);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des clients dans KV/Redis:', error);
+      throw error;
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clientsData, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des clients:', error);
+    throw error;
+  }
+}
+
+// ===== FONCTIONS POUR LA GESTION DES SESSIONS DE QUESTIONNAIRE (AVEC REDIS/KV) =====
+
+async function readQuestionnaireSessions(): Promise<QuestionnaireSession[]> {
+  if (isKvAvailable()) {
+    try {
+      const sessions = await kvGet<QuestionnaireSession[]>(QUESTIONNAIRE_SESSIONS_KEY);
+      return sessions || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des sessions de questionnaire depuis KV/Redis:', error);
+      return [];
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    if (fs.existsSync(SESSIONS_FILE)) {
+      const data = fs.readFileSync(SESSIONS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des sessions de questionnaire:', error);
+  }
+  return [];
+}
+
+async function writeQuestionnaireSessions(sessions: QuestionnaireSession[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kvSet(QUESTIONNAIRE_SESSIONS_KEY, sessions);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des sessions de questionnaire dans KV/Redis:', error);
+      throw error;
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des sessions de questionnaire:', error);
+    throw error;
+  }
+}
+
+// ===== FONCTIONS POUR LA GESTION DES AXES D'ANALYSE (AVEC REDIS/KV) =====
+
+async function readAnalysisAxes(): Promise<AnalysisAxis[]> {
+  if (isKvAvailable()) {
+    try {
+      const axes = await kvGet<AnalysisAxis[]>(ANALYSIS_AXES_KEY);
+      return axes || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des axes d\'analyse depuis KV/Redis:', error);
+      return [];
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    if (fs.existsSync(ANALYSIS_AXES_FILE)) {
+      const data = fs.readFileSync(ANALYSIS_AXES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des axes d\'analyse:', error);
+  }
+  return [];
+}
+
+async function writeAnalysisAxes(axes: AnalysisAxis[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kvSet(ANALYSIS_AXES_KEY, axes);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des axes d\'analyse dans KV/Redis:', error);
+      throw error;
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    fs.writeFileSync(ANALYSIS_AXES_FILE, JSON.stringify(axes, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des axes d\'analyse:', error);
+    throw error;
+  }
+}
+
+// ===== FONCTIONS POUR LA GESTION DES PARAMÈTRES (AVEC REDIS/KV) =====
+
+async function readSettings(): Promise<Setting[]> {
+  if (isKvAvailable()) {
+    try {
+      const settingsData = await kvGet<Setting[]>(SETTINGS_KEY);
+      return settingsData || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des paramètres depuis KV/Redis:', error);
+      return [];
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const data = fs.readFileSync(SETTINGS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des paramètres:', error);
+  }
+  return [];
+}
+
+async function writeSettings(settingsData: Setting[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kvSet(SETTINGS_KEY, settingsData);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des paramètres dans KV/Redis:', error);
+      throw error;
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settingsData, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des paramètres:', error);
+    throw error;
+  }
+}
+
 // Initialiser les données par défaut si nécessaire
 async function initDefaultData() {
   const currentQuestions = await readQuestions().catch(() => questions);
@@ -764,7 +1027,7 @@ export function getClient(id: string): Client | null {
   return clients.find(c => c.id === id) || null;
 }
 
-export function createClient(clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): Client {
+export async function createClient(clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>): Promise<Client> {
   const now = new Date().toISOString();
   const newClient: Client = {
     ...clientData,
@@ -773,11 +1036,16 @@ export function createClient(clientData: Omit<Client, 'id' | 'created_at' | 'upd
     updated_at: now
   };
   clients.push(newClient);
+  
+  // Sauvegarder dans KV/Redis si disponible
+  if (isKvAvailable()) {
+    await writeClients(clients);
+  }
   saveAllData();
   return newClient;
 }
 
-export function updateClient(id: string, clientData: Partial<Omit<Client, 'id' | 'created_at'>>): Client | null {
+export async function updateClient(id: string, clientData: Partial<Omit<Client, 'id' | 'created_at'>>): Promise<Client | null> {
   const index = clients.findIndex(c => c.id === id);
   if (index !== -1) {
     clients[index] = { 
@@ -785,16 +1053,26 @@ export function updateClient(id: string, clientData: Partial<Omit<Client, 'id' |
       ...clientData, 
       updated_at: new Date().toISOString() 
     };
+    
+    // Sauvegarder dans KV/Redis si disponible
+    if (isKvAvailable()) {
+      await writeClients(clients);
+    }
     saveAllData();
     return clients[index];
   }
   return null;
 }
 
-export function deleteClient(id: string): boolean {
+export async function deleteClient(id: string): Promise<boolean> {
   const index = clients.findIndex(c => c.id === id);
   if (index !== -1) {
     clients.splice(index, 1);
+    
+    // Sauvegarder dans KV/Redis si disponible
+    if (isKvAvailable()) {
+      await writeClients(clients);
+    }
     saveAllData();
     return true;
   }
@@ -824,7 +1102,7 @@ function generateShortUrl(): string {
   return result;
 }
 
-export function createQuestionnaireSession(sessionData: Omit<QuestionnaireSession, 'id' | 'created_at' | 'updated_at' | 'short_url' | 'frozen_analysis_axes'>): QuestionnaireSession {
+export async function createQuestionnaireSession(sessionData: Omit<QuestionnaireSession, 'id' | 'created_at' | 'updated_at' | 'short_url' | 'frozen_analysis_axes'>): Promise<QuestionnaireSession> {
   const now = new Date().toISOString();
   const shortUrl = generateShortUrl();
   
@@ -840,11 +1118,16 @@ export function createQuestionnaireSession(sessionData: Omit<QuestionnaireSessio
     updated_at: now
   };
   questionnaireSessions.push(newSession);
+  
+  // Sauvegarder dans KV/Redis si disponible
+  if (isKvAvailable()) {
+    await writeQuestionnaireSessions(questionnaireSessions);
+  }
   saveAllData();
   return newSession;
 }
 
-export function updateQuestionnaireSession(id: string, sessionData: Partial<Omit<QuestionnaireSession, 'id' | 'created_at'>>): QuestionnaireSession | null {
+export async function updateQuestionnaireSession(id: string, sessionData: Partial<Omit<QuestionnaireSession, 'id' | 'created_at'>>): Promise<QuestionnaireSession | null> {
   const index = questionnaireSessions.findIndex(s => s.id === id);
   if (index !== -1) {
     questionnaireSessions[index] = { 
@@ -852,16 +1135,26 @@ export function updateQuestionnaireSession(id: string, sessionData: Partial<Omit
       ...sessionData, 
       updated_at: new Date().toISOString() 
     };
+    
+    // Sauvegarder dans KV/Redis si disponible
+    if (isKvAvailable()) {
+      await writeQuestionnaireSessions(questionnaireSessions);
+    }
     saveAllData();
     return questionnaireSessions[index];
   }
   return null;
 }
 
-export function deleteQuestionnaireSession(id: string): boolean {
+export async function deleteQuestionnaireSession(id: string): Promise<boolean> {
   const index = questionnaireSessions.findIndex(s => s.id === id);
   if (index !== -1) {
     questionnaireSessions.splice(index, 1);
+    
+    // Sauvegarder dans KV/Redis si disponible
+    if (isKvAvailable()) {
+      await writeQuestionnaireSessions(questionnaireSessions);
+    }
     saveAllData();
     return true;
   }

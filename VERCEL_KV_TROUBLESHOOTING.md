@@ -94,3 +94,4 @@ Parfois, Vercel ne lie pas automatiquement la base de données au projet. Dans c
 1. Soit lier la base manuellement (Option A ci-dessus)
 2. Soit ajouter les variables manuellement (Option B ci-dessus)
 
+

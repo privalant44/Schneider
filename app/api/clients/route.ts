@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       );
     }
     
-    const newClient = createClient({
+    const newClient = await createClient({
       name,
       description,
       logo
@@ -52,7 +52,7 @@ export async function PUT(request: Request) {
       );
     }
     
-    const updatedClient = updateClient(id, {
+    const updatedClient = await updateClient(id, {
       name,
       description,
       logo
@@ -87,7 +87,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const success = deleteClient(id);
+    const success = await deleteClient(id);
     
     if (success) {
       return NextResponse.json({ success: true });

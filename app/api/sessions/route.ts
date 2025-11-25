@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       );
     }
     
-    const newSession = createQuestionnaireSession({
+    const newSession = await createQuestionnaireSession({
       client_id,
       name,
       description,
@@ -91,7 +91,7 @@ export async function PUT(request: Request) {
       );
     }
     
-    const updatedSession = updateQuestionnaireSession(id, {
+    const updatedSession = await updateQuestionnaireSession(id, {
       name,
       description,
       start_date,
@@ -129,7 +129,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const success = deleteQuestionnaireSession(id);
+    const success = await deleteQuestionnaireSession(id);
     
     if (success) {
       return NextResponse.json({ success: true });

@@ -102,3 +102,4 @@ Pour chaque type de données, il faut :
 4. Mettre à jour `saveAllData()` pour sauvegarder dans Redis
 5. Mettre à jour toutes les fonctions de modification pour être async et sauvegarder dans Redis
 
+
