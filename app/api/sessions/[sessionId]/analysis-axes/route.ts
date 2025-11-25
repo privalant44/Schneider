@@ -15,7 +15,7 @@ export async function GET(
     }
 
     const { getSessionAnalysisAxes } = await import('@/lib/json-database');
-    const axes = getSessionAnalysisAxes(sessionId);
+    const axes = await getSessionAnalysisAxes(sessionId);
     
     return NextResponse.json(axes);
   } catch (error) {
