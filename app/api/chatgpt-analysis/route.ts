@@ -21,8 +21,8 @@ export async function POST(request: Request) {
     // Récupérer les données des sessions
     const session1 = getQuestionnaireSession(session1Id);
     const session2 = getQuestionnaireSession(session2Id);
-    const results1 = getSessionResults(session1Id);
-    const results2 = getSessionResults(session2Id);
+    const results1 = await getSessionResults(session1Id);
+    const results2 = await getSessionResults(session2Id);
 
     if (!session1 || !session2 || !results1 || !results2) {
       return NextResponse.json(

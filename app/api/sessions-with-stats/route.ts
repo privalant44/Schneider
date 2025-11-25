@@ -69,11 +69,11 @@ export async function GET(request: Request) {
       // Calculer les statistiques en temps réel depuis les données chargées
       const responses = kvAvailable && allResponses.length > 0
         ? allResponses.filter((r: any) => r.session_id === session.id)
-        : getSessionResponses(session.id);
+        : await getSessionResponses(session.id);
       
       const profiles = kvAvailable && allProfiles.length > 0
         ? allProfiles.filter((p: any) => p.session_id === session.id)
-        : getRespondentProfilesBySession(session.id);
+        : await getRespondentProfilesBySession(session.id);
       
       // Le nombre de répondants est le nombre de profils uniques
       const respondentCount = profiles.length;

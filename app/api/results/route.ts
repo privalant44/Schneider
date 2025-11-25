@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         sessionResults = await recalculateSessionResults(sessionId);
       } else {
         // Essayer d'abord les résultats stockés, sinon recalculer
-        sessionResults = getSessionResults(sessionId) || await recalculateSessionResults(sessionId);
+        sessionResults = await getSessionResults(sessionId) || await recalculateSessionResults(sessionId);
       }
       
       if (sessionResults) {

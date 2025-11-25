@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     
     if (session1Id && session2Id) {
       // Comparer deux sessions spécifiques
-      const comparison = compareSessions(session1Id, session2Id);
+      const comparison = await compareSessions(session1Id, session2Id);
       if (comparison) {
         return NextResponse.json(comparison);
       } else {

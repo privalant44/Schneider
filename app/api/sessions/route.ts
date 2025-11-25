@@ -21,7 +21,7 @@ export async function GET(request: Request) {
       // Récupérer une session spécifique
       const session = getQuestionnaireSession(sessionId);
       if (session) {
-        const results = getSessionResults(sessionId);
+        const results = await getSessionResults(sessionId);
         return NextResponse.json({ session, results });
       } else {
         return NextResponse.json(

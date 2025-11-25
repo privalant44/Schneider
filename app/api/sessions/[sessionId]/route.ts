@@ -15,7 +15,7 @@ export async function GET(
       );
     }
 
-    const results = getSessionResults(params.sessionId);
+    const results = await getSessionResults(params.sessionId);
     return NextResponse.json({ session, results });
   } catch (error) {
     console.error('Erreur lors de la récupération de la session:', error);

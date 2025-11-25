@@ -1179,7 +1179,14 @@ export function getRespondentProfile(id: string): RespondentProfile | null {
   return respondentProfiles.find(p => p.id === id) || null;
 }
 
-export function getRespondentProfilesBySession(sessionId: string): RespondentProfile[] {
+export async function getRespondentProfilesBySession(sessionId: string): Promise<RespondentProfile[]> {
+  // Recharger les données depuis Redis avant de lire pour garantir la cohérence
+  await reloadSessionDataIfNeeded();
+  return respondentProfiles.filter(p => p.session_id === sessionId);
+}
+
+// Version synchrone pour compatibilité (dépréciée, utiliser la version async)
+export function getRespondentProfilesBySessionSync(sessionId: string): RespondentProfile[] {
   return respondentProfiles.filter(p => p.session_id === sessionId);
 }
 
@@ -1206,7 +1213,14 @@ export async function addSessionResponse(responseData: Omit<SessionResponse, 'id
   return newResponse;
 }
 
-export function getSessionResponses(sessionId: string): SessionResponse[] {
+export async function getSessionResponses(sessionId: string): Promise<SessionResponse[]> {
+  // Recharger les données depuis Redis avant de lire pour garantir la cohérence
+  await reloadSessionDataIfNeeded();
+  return sessionResponses.filter(r => r.session_id === sessionId);
+}
+
+// Version synchrone pour compatibilité (dépréciée, utiliser la version async)
+export function getSessionResponsesSync(sessionId: string): SessionResponse[] {
   return sessionResponses.filter(r => r.session_id === sessionId);
 }
 
@@ -1220,9 +1234,27 @@ export function getSessionResponsesByProfile(profileId: string): SessionResponse
 
 // ===== FONCTIONS POUR LA GESTION DES RÉSULTATS DE SESSION =====
 
+// Fonction pour recharger les données depuis Redis si nécessaire
+async function reloadSessionDataIfNeeded(): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      // Recharger les données depuis Redis pour garantir la cohérence
+      sessionResponses = await readSessionResponses();
+      respondentProfiles = await readRespondentProfiles();
+      sessionResults = await readSessionResults();
+    } catch (error) {
+      console.error('Erreur lors du rechargement des données de session depuis Redis:', error);
+      // Continuer avec les données en mémoire en cas d'erreur
+    }
+  }
+}
+
 export async function calculateSessionResults(sessionId: string): Promise<SessionResults> {
-  const responses = getSessionResponses(sessionId);
-  const profiles = getRespondentProfilesBySession(sessionId);
+  // Recharger les données depuis Redis avant de calculer pour garantir la cohérence
+  await reloadSessionDataIfNeeded();
+  
+  const responses = await getSessionResponses(sessionId);
+  const profiles = await getRespondentProfilesBySession(sessionId);
   
   // Calculer la distribution des cultures
   const cultureCounts = { A: 0, B: 0, C: 0, D: 0 };
@@ -1289,13 +1321,18 @@ export async function calculateSessionResults(sessionId: string): Promise<Sessio
   return results;
 }
 
-export function getSessionResults(sessionId: string): SessionResults | null {
+export async function getSessionResults(sessionId: string): Promise<SessionResults | null> {
+  // Recharger les données depuis Redis avant de lire pour garantir la cohérence
+  await reloadSessionDataIfNeeded();
   return sessionResults.find(r => r.session_id === sessionId) || null;
 }
 
 // Fonction pour recalculer les résultats d'une session en temps réel
 export async function recalculateSessionResults(sessionId: string): Promise<SessionResults | null> {
-  const responses = getSessionResponses(sessionId);
+  // Recharger les données depuis Redis avant de calculer pour garantir la cohérence
+  await reloadSessionDataIfNeeded();
+  
+  const responses = await getSessionResponses(sessionId);
   
   console.log(`Recalcul pour session ${sessionId}: ${responses.length} réponses trouvées`);
   
@@ -1409,9 +1446,9 @@ export function getAllSessionResults(): SessionResults[] {
 
 // ===== FONCTIONS POUR LES COMPARAISONS ENTRE SESSIONS =====
 
-export function compareSessions(session1Id: string, session2Id: string): SessionComparison | null {
-  const results1 = getSessionResults(session1Id);
-  const results2 = getSessionResults(session2Id);
+export async function compareSessions(session1Id: string, session2Id: string): Promise<SessionComparison | null> {
+  const results1 = await getSessionResults(session1Id);
+  const results2 = await getSessionResults(session2Id);
   
   if (!results1 || !results2) {
     return null;
@@ -1985,7 +2022,7 @@ export function getShortUrlDiagnostics() {
 // Fonctions pour l'analyse par domaine
 export async function calculateDomainAnalysis(sessionId: string): Promise<DomainAnalysis[]> {
   // Récupérer toutes les réponses pour cette session
-  const sessionResponses = getSessionResponses(sessionId);
+  const sessionResponses = await getSessionResponses(sessionId);
   
   console.log(`Calcul des analyses par domaine pour ${sessionId}: ${sessionResponses.length} réponses trouvées`);
   

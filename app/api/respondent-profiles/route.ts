@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       }
     } else if (sessionId) {
       // Récupérer tous les profils d'une session
-      const profiles = getRespondentProfilesBySession(sessionId);
+      const profiles = await getRespondentProfilesBySession(sessionId);
       return NextResponse.json(profiles);
     } else {
       return NextResponse.json(

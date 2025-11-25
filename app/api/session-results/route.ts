@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     }
     
     // Récupérer les résultats de la session
-    const results = getSessionResults(sessionId);
+    const results = await getSessionResults(sessionId);
     
     if (!results) {
       return NextResponse.json(
