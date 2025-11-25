@@ -101,7 +101,7 @@ function isVercel(): boolean {
 
 // Fonction pour vérifier si Vercel KV est disponible
 // Supporte deux formats : REDIS_URL (format standard) ou KV_REST_API_URL + KV_REST_API_TOKEN (format REST API)
-function isKvAvailable(): boolean {
+export function isKvAvailable(): boolean {
   // Format 1: REDIS_URL (format standard Redis)
   if (process.env.REDIS_URL) {
     return true;
@@ -135,7 +135,7 @@ function getRedisClient(): Redis | null {
 }
 
 // Wrapper pour les opérations KV qui supporte les deux formats
-async function kvGet<T>(key: string): Promise<T | null> {
+export async function kvGet<T>(key: string): Promise<T | null> {
   // Format 1: REDIS_URL (format standard Redis avec ioredis)
   if (process.env.REDIS_URL) {
     const client = getRedisClient();

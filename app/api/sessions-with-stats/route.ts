@@ -1,7 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getQuestionnaireSessions, getClients, getSessionResults } from '@/lib/json-database';
+import { 
+  getQuestionnaireSessions, 
+  getClients,
+  getSessionResponses,
+  getRespondentProfilesBySession,
+  kvGet,
+  isKvAvailable
+} from '@/lib/json-database';
 
 export const dynamic = "force-dynamic";
+
+// Clés Redis
+const QUESTIONNAIRE_SESSIONS_KEY = 'questionnaire_sessions';
+const SESSION_RESPONSES_KEY = 'session_responses';
+const RESPONDENT_PROFILES_KEY = 'respondent_profiles';
 
 export async function GET(request: Request) {
   try {
@@ -10,19 +22,37 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     
-    // Récupérer toutes les sessions
-    let sessions = getQuestionnaireSessions();
+    // Recharger les données directement depuis Redis pour avoir les données les plus récentes
+    const kvAvailable = isKvAvailable();
     
-    // Filtrer par client si spécifié
+    let allSessions: any[] = [];
+    let allResponses: any[] = [];
+    let allProfiles: any[] = [];
+    
+    if (kvAvailable) {
+      // Charger depuis Redis pour avoir les données les plus récentes
+      try {
+        allSessions = await kvGet<any[]>(QUESTIONNAIRE_SESSIONS_KEY) || [];
+        allResponses = await kvGet<any[]>(SESSION_RESPONSES_KEY) || [];
+        allProfiles = await kvGet<any[]>(RESPONDENT_PROFILES_KEY) || [];
+      } catch (error) {
+        console.error('Erreur lors du chargement depuis Redis, utilisation des données en mémoire:', error);
+        // Fallback sur les données en mémoire
+        allSessions = getQuestionnaireSessions();
+      }
+    } else {
+      // Utiliser les données en mémoire
+      allSessions = getQuestionnaireSessions();
+    }
+    
+    // Filtrer les sessions
+    let sessions = allSessions;
     if (clientId) {
       sessions = sessions.filter(s => s.client_id === clientId);
     }
-    
-    // Filtrer par dates si spécifiées
     if (startDate) {
       sessions = sessions.filter(s => new Date(s.start_date) >= new Date(startDate));
     }
-    
     if (endDate) {
       sessions = sessions.filter(s => new Date(s.start_date) <= new Date(endDate));
     }
@@ -34,15 +64,28 @@ export async function GET(request: Request) {
       return acc;
     }, {} as Record<string, string>);
     
-    // Enrichir les sessions avec les statistiques
+    // Enrichir les sessions avec les statistiques calculées en temps réel
     const sessionsWithStats = sessions.map(session => {
-      const results = getSessionResults(session.id);
-      const responseCount = results ? results.total_responses : 0;
+      // Calculer les statistiques en temps réel depuis les données chargées
+      const responses = kvAvailable && allResponses.length > 0
+        ? allResponses.filter((r: any) => r.session_id === session.id)
+        : getSessionResponses(session.id);
+      
+      const profiles = kvAvailable && allProfiles.length > 0
+        ? allProfiles.filter((p: any) => p.session_id === session.id)
+        : getRespondentProfilesBySession(session.id);
+      
+      // Le nombre de répondants est le nombre de profils uniques
+      const respondentCount = profiles.length;
+      
+      // Le nombre total de réponses est le nombre total de réponses
+      const responseCount = responses.length;
       
       return {
         ...session,
         client_name: clientMap[session.client_id] || 'Client inconnu',
-        response_count: responseCount,
+        response_count: respondentCount, // Nombre de répondants (profils)
+        total_responses: responseCount, // Nombre total de réponses
         status: session.is_active ? 'Actif' : 'Inactif',
         start_date_formatted: new Date(session.start_date).toLocaleDateString('fr-FR'),
         end_date_formatted: session.end_date ? new Date(session.end_date).toLocaleDateString('fr-FR') : 'Non définie'
