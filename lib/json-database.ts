@@ -99,7 +99,7 @@ export function isVercel(): boolean {
 }
 
 // Réexporter les fonctions du gestionnaire Redis
-export { kvGet, kvSet, isKvAvailableFromManager as isKvAvailable } from './redis-manager';
+export { kvGet, kvSet, isKvAvailable } from './redis-manager';
 
 // Fonction pour s'assurer que le dossier data existe
 function ensureDataDir() {
