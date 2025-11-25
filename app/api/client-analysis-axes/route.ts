@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     }
 
     const { getClientSpecificAxes } = await import('@/lib/json-database');
-    const clientAxes = getClientSpecificAxes(clientId);
+    const clientAxes = await getClientSpecificAxes(clientId);
     
     return NextResponse.json(clientAxes);
   } catch (error) {

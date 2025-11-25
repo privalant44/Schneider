@@ -1154,7 +1154,7 @@ export async function createQuestionnaireSession(sessionData: Omit<Questionnaire
   const shortUrl = generateShortUrl();
   
   // Récupérer les axes d'analyse effectifs pour ce client au moment de la création
-  const effectiveAxes = getEffectiveAnalysisAxesForClient(sessionData.client_id);
+  const effectiveAxes = await getEffectiveAnalysisAxesForClient(sessionData.client_id);
   
   const newSession: QuestionnaireSession = {
     ...sessionData,
@@ -1322,6 +1322,19 @@ async function reloadClientsIfNeeded(): Promise<void> {
       clients = await readClients();
     } catch (error) {
       console.error('Erreur lors du rechargement des clients depuis Redis:', error);
+      // Continuer avec les données en mémoire en cas d'erreur
+    }
+  }
+}
+
+// Fonction pour recharger les axes spécifiques par client depuis Redis si nécessaire
+async function reloadClientSpecificAxesIfNeeded(): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      // Recharger les axes spécifiques depuis Redis pour garantir la cohérence
+      clientSpecificAxes = await readClientSpecificAxes();
+    } catch (error) {
+      console.error('Erreur lors du rechargement des axes spécifiques par client depuis Redis:', error);
       // Continuer avec les données en mémoire en cas d'erreur
     }
   }
@@ -1809,17 +1822,40 @@ export async function deleteClientAnalysisAxes(clientId: string): Promise<void> 
 
 // ===== FONCTIONS POUR LA GESTION DES AXES SPÉCIFIQUES AUX CLIENTS =====
 
-export function getClientSpecificAxes(clientId: string): ClientSpecificAxis[] {
+export async function getClientSpecificAxes(clientId: string): Promise<ClientSpecificAxis[]> {
+  // Recharger les axes spécifiques depuis Redis avant de lire pour garantir la cohérence
+  await reloadClientSpecificAxesIfNeeded();
   return clientSpecificAxes
     .filter(ca => ca.client_id === clientId)
     .sort((a, b) => a.order - b.order);
 }
 
-export function getAllClientSpecificAxes(): ClientSpecificAxis[] {
+// Version synchrone pour compatibilité (dépréciée, utiliser la version async)
+export function getClientSpecificAxesSync(clientId: string): ClientSpecificAxis[] {
+  return clientSpecificAxes
+    .filter(ca => ca.client_id === clientId)
+    .sort((a, b) => a.order - b.order);
+}
+
+export async function getAllClientSpecificAxes(): Promise<ClientSpecificAxis[]> {
+  // Recharger les axes spécifiques depuis Redis avant de lire pour garantir la cohérence
+  await reloadClientSpecificAxesIfNeeded();
   return clientSpecificAxes;
 }
 
-export function getClientSpecificAxis(id: string): ClientSpecificAxis | null {
+// Version synchrone pour compatibilité (dépréciée, utiliser la version async)
+export function getAllClientSpecificAxesSync(): ClientSpecificAxis[] {
+  return clientSpecificAxes;
+}
+
+export async function getClientSpecificAxis(id: string): Promise<ClientSpecificAxis | null> {
+  // Recharger les axes spécifiques depuis Redis avant de lire pour garantir la cohérence
+  await reloadClientSpecificAxesIfNeeded();
+  return clientSpecificAxes.find(axis => axis.id === id) || null;
+}
+
+// Version synchrone pour compatibilité (dépréciée, utiliser la version async)
+export function getClientSpecificAxisSync(id: string): ClientSpecificAxis | null {
   return clientSpecificAxes.find(axis => axis.id === id) || null;
 }
 
@@ -1832,10 +1868,28 @@ export async function addClientAnalysisAxis(axis: Omit<ClientSpecificAxis, 'id' 
   };
   clientSpecificAxes.push(newAxis);
   
-  // Sauvegarder dans KV/Redis si disponible
-  if (isKvAvailable()) {
-    await writeClientSpecificAxes(clientSpecificAxes);
+  // Sauvegarder dans KV/Redis si disponible (TOUJOURS sur Vercel)
+  try {
+    if (isKvAvailable()) {
+      await writeClientSpecificAxes(clientSpecificAxes);
+      console.log(`Axe client créé et sauvegardé dans Redis: ${newAxis.id}`);
+    } else if (isVercel()) {
+      // Sur Vercel, on DOIT avoir Redis/KV
+      throw new Error('Vercel KV non configuré. Impossible de sauvegarder l\'axe client.');
+    } else {
+      // En local, sauvegarder dans le fichier
+      await writeClientSpecificAxes(clientSpecificAxes);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde de l\'axe client:', error);
+    // Retirer l'axe de la liste en mémoire si la sauvegarde a échoué
+    const index = clientSpecificAxes.findIndex(a => a.id === newAxis.id);
+    if (index !== -1) {
+      clientSpecificAxes.splice(index, 1);
+    }
+    throw error;
   }
+  
   saveAllData();
   return newAxis;
 }
@@ -1843,12 +1897,30 @@ export async function addClientAnalysisAxis(axis: Omit<ClientSpecificAxis, 'id' 
 export async function updateClientAnalysisAxis(id: string, axis: Partial<Omit<ClientSpecificAxis, 'id' | 'created_at' | 'client_id'>>): Promise<ClientSpecificAxis | null> {
   const index = clientSpecificAxes.findIndex(a => a.id === id);
   if (index !== -1) {
+    const oldAxis = { ...clientSpecificAxes[index] };
     clientSpecificAxes[index] = { ...clientSpecificAxes[index], ...axis };
     
-    // Sauvegarder dans KV/Redis si disponible
-    if (isKvAvailable()) {
-      await writeClientSpecificAxes(clientSpecificAxes);
+    // Sauvegarder dans KV/Redis si disponible (TOUJOURS sur Vercel)
+    try {
+      if (isKvAvailable()) {
+        await writeClientSpecificAxes(clientSpecificAxes);
+        console.log(`Axe client mis à jour et sauvegardé dans Redis: ${id}`);
+      } else if (isVercel()) {
+        // Sur Vercel, on DOIT avoir Redis/KV
+        // Restaurer l'ancienne valeur en cas d'erreur
+        clientSpecificAxes[index] = oldAxis;
+        throw new Error('Vercel KV non configuré. Impossible de sauvegarder l\'axe client.');
+      } else {
+        // En local, sauvegarder dans le fichier
+        await writeClientSpecificAxes(clientSpecificAxes);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'axe client:', error);
+      // Restaurer l'ancienne valeur en cas d'erreur
+      clientSpecificAxes[index] = oldAxis;
+      throw error;
     }
+    
     saveAllData();
     return clientSpecificAxes[index];
   }
@@ -1871,8 +1943,8 @@ export async function deleteClientAnalysisAxis(id: string): Promise<boolean> {
 }
 
 // Fonction pour obtenir les axes effectifs d'un client (spécifiques ou par défaut)
-export function getEffectiveAnalysisAxesForClient(clientId: string): AnalysisAxis[] {
-  const specificAxes = getClientSpecificAxes(clientId);
+export async function getEffectiveAnalysisAxesForClient(clientId: string): Promise<AnalysisAxis[]> {
+  const specificAxes = await getClientSpecificAxes(clientId);
   
   // Si le client a des axes spécifiques, les utiliser
   if (specificAxes.length > 0) {
@@ -1901,7 +1973,7 @@ export function getSessionAnalysisAxes(sessionId: string): AnalysisAxis[] {
   
   // Migration : si la session n'a pas d'axes figés, les générer à partir des axes actuels
   if (session && !session.frozen_analysis_axes) {
-    const effectiveAxes = getEffectiveAnalysisAxesForClient(session.client_id);
+    const effectiveAxes = await getEffectiveAnalysisAxesForClient(session.client_id);
     // Mettre à jour la session avec les axes figés
     session.frozen_analysis_axes = effectiveAxes;
     saveAllData();
@@ -1912,16 +1984,16 @@ export function getSessionAnalysisAxes(sessionId: string): AnalysisAxis[] {
 }
 
 // Fonction de migration pour ajouter les axes figés aux sessions existantes
-export function migrateSessionsWithFrozenAxes(): void {
+export async function migrateSessionsWithFrozenAxes(): Promise<void> {
   let updated = false;
   
-  questionnaireSessions.forEach(session => {
+  for (const session of questionnaireSessions) {
     if (!session.frozen_analysis_axes) {
-      const effectiveAxes = getEffectiveAnalysisAxesForClient(session.client_id);
+      const effectiveAxes = await getEffectiveAnalysisAxesForClient(session.client_id);
       session.frozen_analysis_axes = effectiveAxes;
       updated = true;
     }
-  });
+  }
   
   if (updated) {
     saveAllData();
