@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Import dynamique des fonctions de base de données
     const db = await import('@/lib/json-database');
     
-    let data: any[] = [];
+    let data: any;
     
     switch (table) {
       case 'clients':
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         data = db.getQuestionnaireSessions();
         break;
       case 'questions':
-        data = db.getQuestions();
+        data = await db.getQuestions();
         break;
       case 'respondent-profiles':
         data = db.getRespondentProfiles();
@@ -53,10 +53,13 @@ export async function GET(request: NextRequest) {
         );
     }
     
+    // S'assurer que data est un tableau
+    const dataArray = Array.isArray(data) ? data : [];
+    
     return NextResponse.json({
       table,
-      count: data.length,
-      data
+      count: dataArray.length,
+      data: dataArray
     });
   } catch (error) {
     console.error('Erreur lors de la récupération des données brutes:', error);
