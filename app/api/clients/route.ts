@@ -3,7 +3,7 @@ import { getClients, createClient, updateClient, deleteClient } from '@/lib/json
 
 export async function GET() {
   try {
-    const clients = getClients();
+    const clients = await getClients();
     return NextResponse.json(clients);
   } catch (error) {
     console.error('Erreur lors de la récupération des clients:', error);

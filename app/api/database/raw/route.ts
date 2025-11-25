@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     
     switch (table) {
       case 'clients':
-        data = db.getClients();
+        data = await db.getClients();
         break;
       case 'sessions':
         data = db.getQuestionnaireSessions();

@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const status = await getDatabaseStatus();
     const questions: Question[] = await getQuestions();
-    const clients = getClients();
+    const clients = await getClients();
     const sessions = getQuestionnaireSessions();
     const shortUrlDiagnostics = getShortUrlDiagnostics();
     

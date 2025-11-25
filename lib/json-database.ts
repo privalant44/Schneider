@@ -1019,11 +1019,25 @@ async function initDefaultData() {
 
 // ===== FONCTIONS POUR LA GESTION DES CLIENTS =====
 
-export function getClients(): Client[] {
+export async function getClients(): Promise<Client[]> {
+  // Recharger les clients depuis Redis avant de lire pour garantir la cohérence
+  await reloadClientsIfNeeded();
   return clients.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
-export function getClient(id: string): Client | null {
+// Version synchrone pour compatibilité (dépréciée, utiliser la version async)
+export function getClientsSync(): Client[] {
+  return clients.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+export async function getClient(id: string): Promise<Client | null> {
+  // Recharger les clients depuis Redis avant de lire pour garantir la cohérence
+  await reloadClientsIfNeeded();
+  return clients.find(c => c.id === id) || null;
+}
+
+// Version synchrone pour compatibilité (dépréciée, utiliser la version async)
+export function getClientSync(id: string): Client | null {
   return clients.find(c => c.id === id) || null;
 }
 
@@ -1244,6 +1258,19 @@ async function reloadSessionDataIfNeeded(): Promise<void> {
       sessionResults = await readSessionResults();
     } catch (error) {
       console.error('Erreur lors du rechargement des données de session depuis Redis:', error);
+      // Continuer avec les données en mémoire en cas d'erreur
+    }
+  }
+}
+
+// Fonction pour recharger les clients depuis Redis si nécessaire
+async function reloadClientsIfNeeded(): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      // Recharger les clients depuis Redis pour garantir la cohérence
+      clients = await readClients();
+    } catch (error) {
+      console.error('Erreur lors du rechargement des clients depuis Redis:', error);
       // Continuer avec les données en mémoire en cas d'erreur
     }
   }

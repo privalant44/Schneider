@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     }
     
     // Récupérer les clients pour avoir les noms
-    const clients = getClients();
+    const clients = await getClients();
     const clientMap = clients.reduce((acc, client) => {
       acc[client.id] = client.name;
       return acc;
