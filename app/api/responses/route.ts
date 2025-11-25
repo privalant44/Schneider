@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     // Si c'est une session de questionnaire (nouveau système), utiliser le nouveau flux
     if (sessionId.startsWith('session_') && !sessionId.includes('_')) {
       // Nouveau système - créer un profil de répondant
-      const profile = createRespondentProfile({
+      const profile = await createRespondentProfile({
         session_id: sessionId,
         ...respondentData
       });
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       // Ajouter les réponses avec le nouveau système
       for (const answer of answers) {
         if (answer.questionId && answer.answer) {
-          addSessionResponse({
+          await addSessionResponse({
             session_id: sessionId,
             respondent_profile_id: profile.id,
             question_id: answer.questionId,
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       }
       
       // Calculer les résultats de la session
-      calculateSessionResults(sessionId);
+      await calculateSessionResults(sessionId);
       
       return NextResponse.json({ success: true, sessionId: sessionId, profileId: profile.id });
     } else {

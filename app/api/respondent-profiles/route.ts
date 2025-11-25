@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     }
     
     // Créer le profil de répondant
-    const newProfile = createRespondentProfile({
+    const newProfile = await createRespondentProfile({
       session_id,
       axis_responses: axis_responses || {}
     });
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     if (answers && Array.isArray(answers)) {
       for (const answer of answers) {
         if (answer.questionId && answer.answer) {
-          addSessionResponse({
+          await addSessionResponse({
             session_id,
             respondent_profile_id: newProfile.id,
             question_id: answer.questionId,
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       }
       
       // Recalculer les résultats de la session
-      calculateSessionResults(session_id);
+      await calculateSessionResults(session_id);
     }
 
     return NextResponse.json(newProfile);

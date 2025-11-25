@@ -34,10 +34,10 @@ export async function GET(request: Request) {
       
       if (recalculate) {
         // Forcer le recalcul en temps réel
-        sessionResults = recalculateSessionResults(sessionId);
+        sessionResults = await recalculateSessionResults(sessionId);
       } else {
         // Essayer d'abord les résultats stockés, sinon recalculer
-        sessionResults = getSessionResults(sessionId) || recalculateSessionResults(sessionId);
+        sessionResults = getSessionResults(sessionId) || await recalculateSessionResults(sessionId);
       }
       
       if (sessionResults) {

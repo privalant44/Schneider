@@ -33,6 +33,9 @@ const QUESTIONS_KEY = 'questions';
 const NEXT_QUESTION_ID_KEY = 'next_question_id';
 const CLIENT_ANALYSIS_AXES_KEY = 'client_analysis_axes';
 const CLIENT_SPECIFIC_AXES_KEY = 'client_specific_axes';
+const SESSION_RESPONSES_KEY = 'session_responses';
+const RESPONDENT_PROFILES_KEY = 'respondent_profiles';
+const SESSION_RESULTS_KEY = 'session_results';
 
 // Interface pour les questions (compatible avec l'ancien système)
 interface Question {
@@ -219,9 +222,31 @@ function writeJsonFile<T>(filePath: string, data: T[]): void {
 async function loadAllData() {
   clients = readJsonFile(CLIENTS_FILE, []);
   questionnaireSessions = readJsonFile(SESSIONS_FILE, []);
-  respondentProfiles = readJsonFile(RESPONDENT_PROFILES_FILE, []);
-  sessionResponses = readJsonFile(SESSION_RESPONSES_FILE, []);
-  sessionResults = readJsonFile(SESSION_RESULTS_FILE, []);
+  
+  // Charger les profils de répondants depuis KV si disponible, sinon depuis le fichier
+  try {
+    respondentProfiles = await readRespondentProfiles();
+  } catch (error) {
+    console.error('Erreur lors du chargement des profils de répondants:', error);
+    respondentProfiles = readJsonFile(RESPONDENT_PROFILES_FILE, []);
+  }
+  
+  // Charger les réponses de session depuis KV si disponible, sinon depuis le fichier
+  try {
+    sessionResponses = await readSessionResponses();
+  } catch (error) {
+    console.error('Erreur lors du chargement des réponses de session:', error);
+    sessionResponses = readJsonFile(SESSION_RESPONSES_FILE, []);
+  }
+  
+  // Charger les résultats de session depuis KV si disponible, sinon depuis le fichier
+  try {
+    sessionResults = await readSessionResults();
+  } catch (error) {
+    console.error('Erreur lors du chargement des résultats de session:', error);
+    sessionResults = readJsonFile(SESSION_RESULTS_FILE, []);
+  }
+  
   analysisAxes = readJsonFile(ANALYSIS_AXES_FILE, []);
   
   // Charger les axes d'analyse par client depuis KV si disponible, sinon depuis le fichier
@@ -387,6 +412,165 @@ async function writeClientSpecificAxes(axes: ClientSpecificAxis[]): Promise<void
     fs.writeFileSync(CLIENT_SPECIFIC_AXES_FILE, JSON.stringify(axes, null, 2), 'utf8');
   } catch (error) {
     console.error('Erreur lors de l\'écriture des axes spécifiques par client:', error);
+    throw error;
+  }
+}
+
+// ===== FONCTIONS POUR LA GESTION DES PROFILS DE RÉPONDANTS (AVEC REDIS/KV) =====
+
+async function readRespondentProfiles(): Promise<RespondentProfile[]> {
+  if (isKvAvailable()) {
+    try {
+      const profiles = await kvGet<RespondentProfile[]>(RESPONDENT_PROFILES_KEY);
+      return profiles || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des profils de répondants depuis KV/Redis:', error);
+      return [];
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    if (fs.existsSync(RESPONDENT_PROFILES_FILE)) {
+      const data = fs.readFileSync(RESPONDENT_PROFILES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des profils de répondants:', error);
+  }
+  return [];
+}
+
+async function writeRespondentProfiles(profiles: RespondentProfile[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kvSet(RESPONDENT_PROFILES_KEY, profiles);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des profils de répondants dans KV/Redis:', error);
+      throw error;
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    fs.writeFileSync(RESPONDENT_PROFILES_FILE, JSON.stringify(profiles, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des profils de répondants:', error);
+    throw error;
+  }
+}
+
+// ===== FONCTIONS POUR LA GESTION DES RÉPONSES DE SESSION (AVEC REDIS/KV) =====
+
+async function readSessionResponses(): Promise<SessionResponse[]> {
+  if (isKvAvailable()) {
+    try {
+      const responses = await kvGet<SessionResponse[]>(SESSION_RESPONSES_KEY);
+      return responses || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des réponses de session depuis KV/Redis:', error);
+      return [];
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    if (fs.existsSync(SESSION_RESPONSES_FILE)) {
+      const data = fs.readFileSync(SESSION_RESPONSES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des réponses de session:', error);
+  }
+  return [];
+}
+
+async function writeSessionResponses(responses: SessionResponse[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kvSet(SESSION_RESPONSES_KEY, responses);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des réponses de session dans KV/Redis:', error);
+      throw error;
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    fs.writeFileSync(SESSION_RESPONSES_FILE, JSON.stringify(responses, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des réponses de session:', error);
+    throw error;
+  }
+}
+
+// ===== FONCTIONS POUR LA GESTION DES RÉSULTATS DE SESSION (AVEC REDIS/KV) =====
+
+async function readSessionResults(): Promise<SessionResults[]> {
+  if (isKvAvailable()) {
+    try {
+      const results = await kvGet<SessionResults[]>(SESSION_RESULTS_KEY);
+      return results || [];
+    } catch (error) {
+      console.error('Erreur lors de la lecture des résultats de session depuis KV/Redis:', error);
+      return [];
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    if (fs.existsSync(SESSION_RESULTS_FILE)) {
+      const data = fs.readFileSync(SESSION_RESULTS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la lecture des résultats de session:', error);
+  }
+  return [];
+}
+
+async function writeSessionResults(results: SessionResults[]): Promise<void> {
+  if (isKvAvailable()) {
+    try {
+      await kvSet(SESSION_RESULTS_KEY, results);
+      return;
+    } catch (error) {
+      console.error('Erreur lors de l\'écriture des résultats de session dans KV/Redis:', error);
+      throw error;
+    }
+  }
+  
+  if (isVercel() && !isKvAvailable()) {
+    throw new Error('Vercel KV non configuré. Créez une base de données Redis dans Vercel Dashboard → Storage.');
+  }
+  
+  ensureDataDir();
+  try {
+    fs.writeFileSync(SESSION_RESULTS_FILE, JSON.stringify(results, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Erreur lors de l\'écriture des résultats de session:', error);
     throw error;
   }
 }
@@ -712,7 +896,7 @@ export function getRespondentProfiles(): RespondentProfile[] {
 
 // ===== FONCTIONS POUR LA GESTION DES RÉPONSES DE SESSION =====
 
-export function addSessionResponse(responseData: Omit<SessionResponse, 'id' | 'created_at'>): SessionResponse {
+export async function addSessionResponse(responseData: Omit<SessionResponse, 'id' | 'created_at'>): Promise<SessionResponse> {
   const now = new Date().toISOString();
   const newResponse: SessionResponse = {
     ...responseData,
@@ -720,6 +904,11 @@ export function addSessionResponse(responseData: Omit<SessionResponse, 'id' | 'c
     created_at: now
   };
   sessionResponses.push(newResponse);
+  
+  // Sauvegarder dans KV/Redis si disponible
+  if (isKvAvailable()) {
+    await writeSessionResponses(sessionResponses);
+  }
   saveAllData();
   return newResponse;
 }
@@ -738,7 +927,7 @@ export function getSessionResponsesByProfile(profileId: string): SessionResponse
 
 // ===== FONCTIONS POUR LA GESTION DES RÉSULTATS DE SESSION =====
 
-export function calculateSessionResults(sessionId: string): SessionResults {
+export async function calculateSessionResults(sessionId: string): Promise<SessionResults> {
   const responses = getSessionResponses(sessionId);
   const profiles = getRespondentProfilesBySession(sessionId);
   
@@ -799,6 +988,10 @@ export function calculateSessionResults(sessionId: string): SessionResults {
     sessionResults.push(results);
   }
   
+  // Sauvegarder dans KV/Redis si disponible
+  if (isKvAvailable()) {
+    await writeSessionResults(sessionResults);
+  }
   saveAllData();
   return results;
 }
@@ -808,7 +1001,7 @@ export function getSessionResults(sessionId: string): SessionResults | null {
 }
 
 // Fonction pour recalculer les résultats d'une session en temps réel
-export function recalculateSessionResults(sessionId: string): SessionResults | null {
+export async function recalculateSessionResults(sessionId: string): Promise<SessionResults | null> {
   const responses = getSessionResponses(sessionId);
   
   console.log(`Recalcul pour session ${sessionId}: ${responses.length} réponses trouvées`);
@@ -871,6 +1064,20 @@ export function recalculateSessionResults(sessionId: string): SessionResults | n
     respondent_breakdown: respondentBreakdown,
     created_at: new Date().toISOString()
   };
+  
+  // Sauvegarder les résultats
+  const existingIndex = sessionResults.findIndex(r => r.session_id === sessionId);
+  if (existingIndex !== -1) {
+    sessionResults[existingIndex] = results;
+  } else {
+    sessionResults.push(results);
+  }
+  
+  // Sauvegarder dans KV/Redis si disponible
+  if (isKvAvailable()) {
+    await writeSessionResults(sessionResults);
+  }
+  saveAllData();
   
   console.log(`Résultats recalculés pour ${sessionId}:`, results);
   
